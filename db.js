@@ -4,13 +4,14 @@
      settings  : 1 bản ghi 'main' – tên, tủ đồ, giờ ngủ mục tiêu, ...
      days      : mỗi ngày 1 bản ghi, khóa = 'YYYY-MM-DD'
      sleeps    : mỗi đêm ngủ 1 bản ghi, khóa = id
+     tasks     : mỗi việc 1 bản ghi, khóa = id (từ phiên bản 2)
      snapshots : bản chụp toàn bộ dữ liệu (tự động mỗi ngày + trước khi khôi phục/xóa)
    Nếu trình duyệt không cho dùng IndexedDB thì tạm lưu vào localStorage. */
 (function () {
-  const NAME = 'cozy-life-os', VERSION = 1, FALLBACK_KEY = 'cozy-life-os-fallback';
-  const STORES = ['settings', 'days', 'sleeps', 'snapshots'];
+  const NAME = 'cozy-life-os', VERSION = 2, FALLBACK_KEY = 'cozy-life-os-fallback';
+  const DATA = ['settings', 'days', 'sleeps', 'tasks'], LISTS = ['days', 'sleeps', 'tasks'];
   let dbp = null, useFallback = false;
-  const cache = { settings: null, days: {}, sleeps: {} };
+  const cache = { settings: null, days: {}, sleeps: {}, tasks: {} };
 
   function open() {
     if (dbp) return dbp;
@@ -23,6 +24,7 @@
         if (!db.objectStoreNames.contains('days')) db.createObjectStore('days');
         if (!db.objectStoreNames.contains('sleeps')) db.createObjectStore('sleeps');
         if (!db.objectStoreNames.contains('snapshots')) db.createObjectStore('snapshots');
+        if (!db.objectStoreNames.contains('tasks')) db.createObjectStore('tasks');
       };
       r.onsuccess = () => {
         const db = r.result;
@@ -48,29 +50,30 @@
 
   function split(S) {
     const settings = {};
-    for (const k in S) if (k !== 'days' && k !== 'sleeps') settings[k] = S[k];
-    const sleeps = {};
+    for (const k in S) if (!LISTS.includes(k)) settings[k] = S[k];
+    const sleeps = {}, tasks = {};
     (S.sleeps || []).forEach(s => { sleeps[sleepId(s)] = s; });
-    return { settings, days: S.days || {}, sleeps };
+    (S.tasks || []).forEach(t => { tasks[t.id] = t; });
+    return { settings, days: S.days || {}, sleeps, tasks };
   }
 
   function rememberAll(S) {
     const p = split(S);
     cache.settings = JSON.stringify(p.settings);
-    cache.days = {}; for (const k in p.days) cache.days[k] = JSON.stringify(p.days[k]);
-    cache.sleeps = {}; for (const k in p.sleeps) cache.sleeps[k] = JSON.stringify(p.sleeps[k]);
+    LISTS.forEach(n => { cache[n] = {}; for (const k in p[n]) cache[n][k] = JSON.stringify(p[n][k]); });
   }
 
   /* Đọc toàn bộ dữ liệu. Trả về null nếu máy này chưa có gì. */
   async function loadState() {
     try {
       const db = await open();
-      const [st, days, sleeps] = await Promise.all([getAll(db, 'settings'), getAll(db, 'days'), getAll(db, 'sleeps')]);
+      const [st, days, sleeps, tasks] = await Promise.all(DATA.map(n => getAll(db, n)));
       const main = (st.find(([k]) => k === 'main') || [])[1];
-      if (!main && !days.length && !sleeps.length) return null;
+      if (!main && !days.length && !sleeps.length && !tasks.length) return null;
       const S = Object.assign({}, main || {});
       S.days = {}; days.forEach(([k, v]) => { S.days[k] = v; });
       S.sleeps = sleeps.map(([, v]) => v).sort((a, b) => String(a.bed).localeCompare(String(b.bed)));
+      S.tasks = tasks.map(([, v]) => v).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
       rememberAll(S);
       return S;
     } catch (e) {
@@ -90,11 +93,12 @@
   async function doSave(S) {
     if (useFallback) { localStorage.setItem(FALLBACK_KEY, JSON.stringify(S)); return; }
     const db = await open(), p = split(S);
-    const tx = db.transaction(['settings', 'days', 'sleeps'], 'readwrite');
-    const next = { settings: cache.settings, days: Object.assign({}, cache.days), sleeps: Object.assign({}, cache.sleeps) };
+    const tx = db.transaction(DATA, 'readwrite');
+    const next = { settings: cache.settings };
+    LISTS.forEach(n => { next[n] = Object.assign({}, cache[n]); });
     const sj = JSON.stringify(p.settings);
     if (sj !== cache.settings) { tx.objectStore('settings').put(p.settings, 'main'); next.settings = sj; }
-    for (const kind of ['days', 'sleeps']) {
+    for (const kind of LISTS) {
       const os = tx.objectStore(kind), cur = p[kind];
       for (const k in cur) { const j = JSON.stringify(cur[k]); if (j !== cache[kind][k]) { os.put(cur[k], k); next[kind][k] = j; } }
       for (const k in cache[kind]) if (!(k in cur)) { os.delete(k); delete next[kind][k]; }
@@ -108,11 +112,10 @@
     await chain;
     if (useFallback) { localStorage.setItem(FALLBACK_KEY, JSON.stringify(S)); return; }
     const db = await open(), p = split(S);
-    const tx = db.transaction(['settings', 'days', 'sleeps'], 'readwrite');
-    ['settings', 'days', 'sleeps'].forEach(n => tx.objectStore(n).clear());
+    const tx = db.transaction(DATA, 'readwrite');
+    DATA.forEach(n => tx.objectStore(n).clear());
     tx.objectStore('settings').put(p.settings, 'main');
-    for (const k in p.days) tx.objectStore('days').put(p.days[k], k);
-    for (const k in p.sleeps) tx.objectStore('sleeps').put(p.sleeps[k], k);
+    LISTS.forEach(n => { for (const k in p[n]) tx.objectStore(n).put(p[n][k], k); });
     await txDone(tx);
     rememberAll(S);
   }

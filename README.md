@@ -20,8 +20,8 @@ Trợ lý cuộc sống nhỏ xinh cùng Bé Chibi — app cá nhân, chạy nga
 | File | Vai trò |
 |---|---|
 | `index.html` | Khung trang + toàn bộ CSS |
-| `app.js` | Giao diện, Chibi, check-in, giấc ngủ, sao lưu |
-| `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / snapshots) |
+| `app.js` | Giao diện, Chibi, check-in, giấc ngủ, tab Việc + Pomodoro, sao lưu |
+| `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / snapshots) |
 | `backup.js` | Tạo và đọc file sao lưu (.json, tùy chọn mã hóa) |
 | `sw.js` | Service worker: chạy offline |
 | `manifest.webmanifest`, `icons/` | Thông tin cài đặt PWA |

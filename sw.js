@@ -1,6 +1,6 @@
 /* Cozy Life OS – service worker: cho app chạy offline.
    MỖI LẦN SỬA APP: tăng VERSION để điện thoại nhận bản mới. */
-const VERSION = 'cozy-2026.11.17-1';
+const VERSION = 'cozy-2026.11.17-2';
 const SHELL = [
   './', './index.html', './app.js', './db.js', './backup.js', './manifest.webmanifest',
   './fonts/fonts.css',
