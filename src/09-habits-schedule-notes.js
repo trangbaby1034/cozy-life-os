@@ -30,11 +30,21 @@ function habitStreak(h) {
   }
   return n;
 }
+function waterBlock() {
+  const d = today(),
+    WG = waterGoal(),
+    wx = waterExtra(),
+    ml = S.water.ml;
+  return `<div class="wblock"><div class="wbh"><b>💧 Uống nước</b><span>${d.water}/${WG} ly · ${fmtL(d.water * ml)}/${fmtL(WG * ml)}${d.water >= WG ? ' ✓' : ''}</span><button class="chip sm gear" data-spgo="water" aria-label="Cài đặt uống nước">⚙️</button></div>
+  <div class="cups" style="grid-template-columns:repeat(${Math.min(8, WG)},minmax(0,1fr))">${Array.from({ length: WG }, (_, i) => `<button class="cup" data-w="${i}" aria-label="Ly ${i + 1}">${cupSvg(i < d.water)}</button>`).join('')}</div>
+  ${d.water > WG ? `<p class="muted" style="margin:6px 0 0">Đã uống thêm ${d.water - WG} ly ngoài mục tiêu 💙</p>` : ''}${wx.ml ? `<p class="muted" style="margin:6px 0 0">Hôm nay mục tiêu +${Math.round(wx.ml / ml)} ly vì ${wx.why.join(' và ')}.</p>` : ''}
+  <div class="row" style="align-items:center">${d.water >= WG ? `<button class="chip sm" data-a="waterPlus">＋ Uống thêm 1 ly</button>` : ''}<button class="linkbtn" data-a="goWater">📊 Lịch sử uống nước</button></div></div>`;
+}
 function habitsCard() {
-  if (!S.habits.length) return '';
   const td = dk(new Date());
   const done = S.habits.filter(h => habitDone(h, td)).length;
-  return `<div class="card"><h2>🌱 Thói quen <small>${done}/${S.habits.length} <button class="chip sm gear" data-spgo="habits" aria-label="Sửa thói quen">⚙️</button></small></h2><div class="hgrid">${S.habits
+  return `<div class="card"><h2>🌱 Thói quen <small>${done}/${S.habits.length} <button class="chip sm gear" data-spgo="habits" aria-label="Sửa thói quen">⚙️</button></small></h2>${waterBlock()}<div class="hgrid">${S.habits
+    .filter(h => h.auto !== 'water')
     .map(h => {
       const on = habitDone(h, td),
         st = habitStreak(h);
@@ -126,7 +136,10 @@ function schedCard() {
   const L = schedItems(),
     now = new Date(),
     cur = blockOf(hm(now));
+  const td = dk(now),
+    pend = S.tasks.filter(t => !t.done && t.due && (t.due < td || (t.due === td && !t.dueTime))).sort(sortTasks);
   return `<div class="card"><h2>🕒 Thời gian biểu <small><button class="chip sm gear" data-a="schedAdd" aria-label="Thêm vào thời gian biểu">＋ Thêm</button></small></h2>
+  ${pend.length ? `<div class="blk pend"><h3>📌 Cần làm hôm nay</h3>${pend.map(t => `<div class="sitem"><input type="checkbox" data-sdone="t:${t.id}" aria-label="Xong: ${esc(t.title)}"><button class="smain" data-sopen="t:${t.id}"><b>${t.due < td ? '⚠️' : '📋'}</b><span>${esc(t.title)}${t.due < td ? ' <i class="over">quá hạn ' + fmtDue(t.due) + '</i>' : ''}</span></button></div>`).join('')}</div>` : ''}
   ${BLOCKS.map(([k, n]) => {
     const I = L.filter(x => blockOf(x.t) === k);
     if (!I.length && k !== cur) return '';

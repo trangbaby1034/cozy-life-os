@@ -1,7 +1,7 @@
 let fxSeason = '?',
   fxTimer = 0;
 function buildFx() {
-  const se = reduce ? null : season();
+  const se = calm() ? null : season();
   if (se === fxSeason) return;
   fxSeason = se;
   const box = $('#snow');
@@ -86,7 +86,7 @@ function seasonGreet() {
     );
   }, 1500);
 }
-const APPVER = '2026.11.18-8';
+const APPVER = '2026.11.18-9';
 const TABS = [
   ['today', '☀️', 'Hôm nay'],
   ['tasks', '📋', 'Việc'],
@@ -151,7 +151,7 @@ const chips = (name, arr, v) =>
   `<div class="row">${arr.map(([k, i, t]) => `<button class="chip" data-f="${name}" data-v="${k}" aria-pressed="${v === k}">${i} ${t}</button>`).join('')}</div>`;
 function checkinSheet() {
   const c = today().checkin || {};
-  F = { mood: c.mood, weather: c.weather, energy: c.energy || 3, body: c.body || 'ok', q: c.q || 4 };
+  F = { mood: c.mood, weather: c.weather, energy: c.energy || 3, body: c.body || 'ok', q: c.q || 4, sore: (c.sore || []).slice() };
   const pb = S.pendingBed ? new Date(S.pendingBed) : null;
   openSheet(`<h2>🌤️ Check-in buổi sáng</h2><p class="muted" style="margin:0">Chọn nhanh thôi, không cần nghĩ nhiều.</p>
   <div class="q"><h3>Tâm trạng</h3>${chips('mood', MOODS, F.mood)}</div>
@@ -161,7 +161,8 @@ function checkinSheet() {
     [1, 2, 3, 4, 5].map(n => [n, '🔋', n]),
     F.energy
   )}</div>
-  <div class="q"><h3>Cơ thể</h3>${chips('body', BODY, F.body)}</div>
+  <div class="q"><h3>Cơ thể</h3>${chips('body', BODY, F.body)}
+   <div id="soreBox" class="${F.body === 'sore' ? '' : 'hide'}" style="margin-top:10px"><p class="muted" style="margin:0 0 6px">Đau ở đâu? (chọn được nhiều)</p><div class="row">${GG.slice(0, 9).map(([k, n]) => `<button class="chip sm" data-sore="${k}" aria-pressed="${F.sore.includes(k)}">${n}</button>`).join('')}</div></div></div>
   <div class="q"><h3>Giấc ngủ đêm qua</h3>${pb ? `<p class="muted" style="margin:0 0 8px">Bạn đi ngủ lúc <b>${hm(pb)}</b>. Bạn dậy lúc mấy giờ?</p>` : `<p class="muted" style="margin:0 0 8px">Tối qua chưa bấm "Đi ngủ". Nhập bù nếu nhớ:</p><input class="inp" type="time" id="bedIn" style="margin-bottom:8px" aria-label="Giờ đi ngủ">`}
    <input class="inp" type="time" id="wakeIn" value="${hm(new Date())}" aria-label="Giờ dậy">
    <div class="stars row" style="margin-top:6px" aria-label="Chất lượng giấc ngủ">${[1, 2, 3, 4, 5].map(n => `<button data-star="${n}" class="${n <= F.q ? 'on' : ''}" aria-label="${n} sao">⭐</button>`).join('')}</div></div>
@@ -176,10 +177,27 @@ function eveningSheet() {
   <button class="btn full" style="margin-top:20px" data-a="goSleep">😴 Đi ngủ</button>`);
 }
 
+function askLazy() {
+  const c = today().checkin || {};
+  showNudge({
+    text:
+      (c.body === 'sick' ? 'Thương ' + S.name + ' quá 🤒 ' : 'Hôm nay năng lượng hơi thấp 🔋 ') +
+      'Hôm nay mình nghỉ chút nha? Mình sẽ ẩn bớt việc không gấp, tạm không nhắc việc và đổi buổi tập thành giãn cơ 10 phút.',
+    btns: ['🛋️ Ừ, nghỉ chút', 'Không, mình ổn'],
+    onBtn: i => setLazy(i === 0)
+  });
+}
+function setLazy(on) {
+  const d = today();
+  d.lazy = on;
+  render();
+  say(on ? 'Ngày Lười Biếng bắt đầu! Nghỉ ngơi thật tốt nha ' + S.name + ' 🛋️' : 'Ok, mình cùng cố gắng nhẹ nhàng nhé 💪', 3500);
+}
 function saveCheckin() {
   const d = today();
   const w = $('#wakeIn').value;
   d.checkin = { mood: F.mood || 'calm', weather: F.weather || 'sun', energy: +F.energy, body: F.body, q: F.q };
+  if (F.body === 'sore' && F.sore.length) d.checkin.sore = F.sore.slice();
   let bed = S.pendingBed ? new Date(S.pendingBed) : null;
   const bi = $('#bedIn');
   if (!bed && bi && bi.value) {
@@ -202,6 +220,7 @@ function saveCheckin() {
   tab = 'today';
   render();
   const c = d.checkin;
+  if ((c.body === 'sick' || c.energy <= 2) && d.lazy === undefined) return setTimeout(askLazy, 900);
   say(
     c.body === 'sick'
       ? 'Thương ' + S.name + ' quá, hôm nay nghỉ ngơi nhiều nha 🤒'

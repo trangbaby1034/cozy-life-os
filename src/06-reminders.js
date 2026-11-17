@@ -232,19 +232,18 @@ function bellAction(kind) {
 /* --- Chibi nhắc trong app (💬) + thanh nhắc --- */
 let nudgeCur = null;
 function lazyDay() {
-  const c = today().checkin;
-  return !!c && (c.body === 'sick' || c.energy <= 2);
+  return today().lazy === true;
 }
 function showNudge(n) {
   nudgeCur = n;
   const el = $('#nudge');
-  el.innerHTML = `<div class="board"><span class="nail l"></span><span class="nail r"></span><button class="xbtn bx" data-nudge="close" aria-label="Đóng">✕</button><p class="bt">🧸 Chibi nhắc nè</p><p>${n.text}</p><div class="row">${n.open ? '<button class="btn" data-nudge="open">Xem</button>' : ''}<button class="btn ghost" data-nudge="snooze">Để sau</button>${n.stop ? '<button class="btn ghost" data-nudge="stop">Đừng nhắc việc này nữa</button>' : ''}</div></div><i class="pole a"></i><i class="pole b"></i>`;
+  el.innerHTML = `<div class="board"><span class="nail l"></span><span class="nail r"></span><button class="xbtn bx" data-nudge="close" aria-label="Đóng">✕</button><p class="bt">🧸 Chibi nhắc nè</p><p>${n.text}</p><div class="row">${n.btns ? n.btns.map((b, i) => `<button class="btn ${i ? 'ghost' : ''}" data-nudge="b${i}">${b}</button>`).join('') : `${n.open ? '<button class="btn" data-nudge="open">Xem</button>' : ''}<button class="btn ghost" data-nudge="snooze">Để sau</button>${n.stop ? '<button class="btn ghost" data-nudge="stop">Đừng nhắc việc này nữa</button>' : ''}`}</div></div><i class="pole a"></i><i class="pole b"></i>`;
   clearTimeout(P.t);
   if (P.act) endAct();
   const b = bounds(),
     tx = Math.round(Math.min(b.maxX, Math.max(b.minX, innerWidth / 2 - PW / 2))),
     ty = b.maxY,
-    ms = reduce ? 0 : Math.max(350, (Math.hypot(tx - P.x, ty - P.y) / 170) * 1000);
+    ms = calm() ? 0 : Math.max(350, (Math.hypot(tx - P.x, ty - P.y) / 170) * 1000);
   pet.classList.toggle('left', tx < P.x);
   pet.classList.remove('sitting');
   pet.classList.add('walking');
@@ -266,7 +265,7 @@ function hideNudge() {
     was = nudgeCur;
   nudgeCur = null;
   el.classList.remove('show');
-  if (was && !reduce) {
+  if (was && !calm()) {
     el.classList.add('hiding');
     setTimeout(() => {
       if (!nudgeCur) {
@@ -285,6 +284,7 @@ function nudgeAction(k) {
   const n = nudgeCur;
   if (!n) return;
   hideNudge();
+  if (k[0] === 'b' && n.onBtn) return n.onBtn(+k.slice(1));
   if (k === 'open') {
     if (n.taskId) {
       tab = 'tasks';

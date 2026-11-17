@@ -90,6 +90,9 @@ const DEF = () => ({
   workouts: [],
   customEx: [],
   water: { cups: 8, ml: 250, weight: '', activity: 'low', auto: true },
+  cardOrder: [],
+  cardHidden: [],
+  lowFx: false,
   habits: [
     { id: 'water', n: 'Uống đủ nước', i: '💧', auto: 'water' },
     { id: 'move', n: 'Vận động', i: '🏃', auto: 'gym' },

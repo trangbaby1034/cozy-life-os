@@ -171,6 +171,7 @@ function viewSettings() {
     me: () => `  <div class="card"><h2>🧸 Bạn & Chibi</h2>
   <div class="q" style="margin-top:0"><h3>Tên Chibi gọi bạn</h3><input class="inp" id="nm" value="${esc(S.name)}" maxlength="20"></div>
   <div class="q"><h3>Chibi di chuyển</h3><div class="row"><button class="chip" data-roam="1" aria-pressed="${S.roam !== false}">🏃 Chạy lung tung</button><button class="chip" data-roam="0" aria-pressed="${S.roam === false}">🪑 Ngồi yên một góc</button></div><p class="muted" style="margin:6px 0 0">Mẹo: kéo Chibi để bế bé sang chỗ khác.</p></div>
+  <div class="q"><h3>🔋 Giảm hiệu ứng (tiết kiệm pin)</h3><div class="row"><button class="chip" data-a="lowFx" aria-pressed="${!!S.lowFx}">${S.lowFx ? '✅ Đang bật' : 'Đang tắt'}</button></div><p class="muted" style="margin:6px 0 0">Tắt tuyết, pháo hoa, hoa rơi, hoa giấy và các chuyển động; Chibi ngồi yên một góc. Nên bật khi máy yếu pin hoặc thấy máy nóng.</p></div>
   <div class="q"><h3>Âm thanh Chibi</h3><div class="row"><button class="chip" data-snd="1" aria-pressed="${S.sound !== false}">🔊 Bật (tiếng ực ực khi uống nước)</button><button class="chip" data-snd="0" aria-pressed="${S.sound === false}">🔇 Tắt</button></div></div>
   <div class="q"><h3>Giờ đi ngủ mục tiêu</h3><input class="inp" type="time" id="bt" value="${S.bedTarget}"></div></div>
   `,
@@ -214,6 +215,15 @@ function viewSettings() {
   <div class="tip">⚠️ Nếu bạn có bệnh tim, thận, gan, đang mang thai, hoặc được bác sĩ dặn hạn chế/tăng lượng nước, hãy theo chỉ định của bác sĩ.</div></div>`;
     },
     habits: () => habitsPage(),
+    todaycards: () => `<div class="card"><h2>🏠 Tab Hôm nay</h2><p class="muted" style="margin:0 0 8px">Bật/tắt và sắp xếp thứ tự các thẻ. Thẻ hệ thống (cài app, nhắc sao lưu, giờ đi ngủ, Ngày Lười Biếng) vẫn tự hiện khi cần.</p>
+  ${cardOrder()
+    .map((k, i, a) => {
+      const c = TCARDS.find(x => x[0] === k),
+        on = cardOn(k);
+      return `<div class="corow ${on ? '' : 'off'}"><span class="si">${c[1]}</span><span class="stx"><b>${c[2]}</b></span><button class="xbtn" data-cmove="${k}:-1" ${i ? '' : 'disabled'} aria-label="Đưa ${c[2]} lên">▲</button><button class="xbtn" data-cmove="${k}:1" ${i < a.length - 1 ? '' : 'disabled'} aria-label="Đưa ${c[2]} xuống">▼</button><button class="chip sm" data-ctog="${k}" aria-pressed="${on}">${on ? 'Hiện' : 'Ẩn'}</button></div>`;
+    })
+    .join('')}
+  <button class="chip sm" data-a="cReset" style="margin-top:12px">Về mặc định</button></div>`,
     about:
       () => `  <div class="card"><h2>💝 Giới thiệu & Ghi công</h2><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
   <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Everkinetic</b> – hình tư thế bài tập · Greg Priday & cộng đồng (github.com/everkinetic/data) · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.vi" target="_blank" rel="noopener">CC BY-SA 4.0</a> · chỉ nén dung lượng, không sửa nội dung hình</li><li><b>body-highlighter</b> – hình cơ thể tô nhóm cơ · GV79 & alahaxe · giấy phép MIT</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></div>
@@ -271,6 +281,7 @@ function settingsHub() {
     [
       'Ứng dụng',
       [
+        ['todaycards', '🏠', 'Tab Hôm nay', cardOrder().filter(cardOn).length + '/' + TCARDS.length + ' thẻ đang hiện'],
         [
           'remind',
           '🔔',

@@ -23,56 +23,85 @@ function backupDue() {
   return d >= 7 ? d : 0;
 }
 
+/* Các thẻ của tab Hôm nay – người dùng ẩn/sắp xếp được (Cài đặt › Tab Hôm nay) */
+const TCARDS = [
+  ['brief', '📰', 'Bản tin đầu ngày'],
+  ['checkin', '🌤️', 'Check-in & gợi ý'],
+  ['top3', '⭐', '3 việc quan trọng nhất'],
+  ['sched', '🕒', 'Thời gian biểu & việc cần làm'],
+  ['gym', '🏋️', 'Ngày tập Gym'],
+  ['bells', '🔔', 'Việc chưa có chuông'],
+  ['habits', '🌱', 'Thói quen & uống nước'],
+  ['candy', '🍬', 'Lọ Kẹo Niềm Vui'],
+  ['notes', '📝', 'Ghi chú nhanh']
+];
+function cardOrder() {
+  const o = (S.cardOrder || []).filter(k => TCARDS.some(c => c[0] === k));
+  TCARDS.forEach(c => {
+    if (!o.includes(c[0])) o.push(c[0]);
+  });
+  return o;
+}
+const cardOn = k => !(S.cardHidden || []).includes(k);
 function viewToday() {
   const d = today(),
     c = d.checkin;
-  let h = briefCard();
+  /* lưu mục tiêu nước của hôm nay để lịch sử đánh giá đúng (kể cả khi thẻ bị ẩn) */
+  d.waterGoal = waterGoal();
+  d.waterMl = S.water.ml;
+  let h = '';
   if (!standalone() && !S.hideInstall)
     h += `<div class="card"><h2>📲 Cài Cozy Life lên điện thoại <small><button class="chip" data-a="hideInstall" style="min-height:36px;padding:4px 12px" aria-label="Ẩn">✕</button></small></h2><p class="muted" style="margin:0 0 10px">Cài lên màn hình chính để mở như app thật, dùng được khi không có mạng${isIOS ? ' và để iPhone không tự xóa dữ liệu khi lâu không mở' : ''}.</p>${installHow()}</div>`;
   const due = backupDue();
   if (due)
     h += `<div class="card"><h2>💾 ${due < 0 ? 'Chưa sao lưu lần nào' : 'Đã ' + due + ' ngày chưa sao lưu'}</h2><p class="muted" style="margin:0 0 10px">Lưu một bản ra file (iCloud Drive, Google Drive…) để lỡ mất máy hay xóa app vẫn còn.</p><button class="btn full" data-a="export">📤 Sao lưu ngay</button></div>`;
-  if (!c) {
-    h += `<div class="card"><h2>Check-in ${new Date().getHours() < 12 ? 'buổi sáng' : 'hôm nay'}</h2><p class="muted" style="margin:0 0 12px">10 giây để Chibi biết hôm nay bạn thế nào.</p><button class="btn full" data-a="checkin">🌤️ Bắt đầu Check-in</button></div>`;
-  } else {
-    h += `<div class="card"><h2>Hôm nay của bạn <small><button class="chip" data-a="checkin" style="min-height:36px;padding:4px 12px">Sửa</button></small></h2>
+  if (d.lazy)
+    h += `<div class="card lazycard"><h2>🛋️ Ngày Lười Biếng</h2><p class="muted" style="margin:0 0 8px">Hôm nay mình nghỉ ngơi là chính: tab Việc chỉ hiện việc gấp, Chibi tạm không nhắc việc, Gym gợi ý giãn cơ 10 phút. Nhớ uống đủ nước và ngủ sớm nha.</p><div class="row"><button class="btn ghost" data-a="goGym">🧘 Giãn cơ 10 phút</button><button class="btn ghost" data-a="lazyOff">Mình khỏe rồi, tắt</button></div></div>`;
+  if (isNight())
+    h += `<div class="card night-card"><h2>🌙 Giờ đi ngủ</h2>${d.evening ? `<p class="muted" style="margin:0">Bạn đã chúc ngủ ngon lúc ${hm(new Date(S.pendingBed || Date.now()))}. Ngủ ngon nha!</p>` : `<p class="muted" style="margin:0 0 12px">Khép lại ngày hôm nay trong 30 giây rồi đi ngủ thôi.</p><button class="btn full" data-a="evening">😴 Bắt đầu</button>`}</div>`;
+  const C = {};
+  C.brief = () => briefCard();
+  C.checkin = () =>
+    !c
+      ? `<div class="card"><h2>Check-in ${new Date().getHours() < 12 ? 'buổi sáng' : 'hôm nay'}</h2><p class="muted" style="margin:0 0 12px">10 giây để Chibi biết hôm nay bạn thế nào.</p><button class="btn full" data-a="checkin">🌤️ Bắt đầu Check-in</button></div>`
+      : `<div class="card"><h2>Hôm nay của bạn <small><button class="chip" data-a="checkin" style="min-height:36px;padding:4px 12px">Sửa</button></small></h2>
     <div class="sum"><div><b>${label(MOODS, c.mood)}</b>Tâm trạng</div><div><b>${label(WEATHER, c.weather)}</b>Thời tiết</div><div><b>🔋${c.energy}</b>Năng lượng</div><div><b>${label(BODY, c.body)}</b>Cơ thể</div></div>
     ${suggestions()
       .map(t => `<div class="tip">${t}</div>`)
-      .join('')}</div>`;
-  }
-  if (isNight()) {
-    h += `<div class="card night-card"><h2>🌙 Giờ đi ngủ</h2>${d.evening ? `<p class="muted" style="margin:0">Bạn đã chúc ngủ ngon lúc ${hm(new Date(S.pendingBed || Date.now()))}. Ngủ ngon nha!</p>` : `<p class="muted" style="margin:0 0 12px">Khép lại ngày hôm nay trong 30 giây rồi đi ngủ thôi.</p><button class="btn full" data-a="evening">😴 Bắt đầu</button>`}</div>`;
-  }
-  const T3 = d.top3.map(top3Slot);
-  h += `<div class="card"><h2>3 việc quan trọng nhất <small>${T3.filter(x => x.d && x.t).length}/3</small></h2>${T3.map((x, i) => `<div class="task ${x.d ? 'done' : ''}"><input type="checkbox" data-t="${i}" ${x.d ? 'checked' : ''} aria-label="Xong việc ${i + 1}">${x.tid ? `<button class="t3link" data-topen="${x.tid}">⭐ ${esc(x.t)}</button>` : `<input type="text" data-tt="${i}" value="${esc(x.t)}" placeholder="Việc số ${i + 1}…">`}</div>`).join('')}${!T3.some(x => x.tid) && S.tasks.some(t => !t.done) ? '<p class="muted" style="margin:6px 0 0">Mẹo: bấm ⭐ ở tab Việc để đưa việc lên đây.</p>' : ''}</div>`;
-  h += schedCard();
-  const awo = activeWo(),
-    gk = S.gym.days.length && planFor(new Date());
-  if (awo)
-    h += `<div class="card"><h2>🏋️ Đang tập dở: ${esc(awo.label)}</h2><button class="btn full" data-a="goGym">Tiếp tục buổi tập</button></div>`;
-  else if (gk && !doneWos().some(w => w.date === dk(new Date())))
-    h += `<div class="card"><h2>💪 Hôm nay là ngày tập <small>${S.gym.time}</small></h2><p class="muted" style="margin:0 0 10px">${SPLITS[gk][0]}: ${SPLITS[gk][1].map(gName).join(' · ')}</p><button class="btn ghost full" data-a="goGym">Xem gợi ý bài tập</button></div>`;
-  const nb = S.tasks.filter(needsBell).sort(sortTasks);
-  if (nb.length)
-    h += `<div class="card"><h2>🔔 Việc chưa có chuông <small>${nb.length}</small></h2><p class="muted" style="margin:0 0 4px">Mấy việc này chọn mức 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0, 3).map(taskRow).join('')}</div>`;
-  const dueL = S.tasks.filter(t => !t.done && t.due && t.due <= dk(new Date())).sort(sortTasks);
-  if (dueL.length)
-    h += `<div class="card"><h2>📋 Việc đến hạn <small>${dueL.length}</small></h2>${dueL.slice(0, 5).map(taskRow).join('')}<button class="btn ghost full" data-tab="tasks" style="margin-top:8px">Mở tab Việc</button></div>`;
-  const WG = waterGoal(),
-    wx = waterExtra(),
-    ml = S.water.ml;
-  d.waterGoal = WG;
-  d.waterMl = ml;
-  h += habitsCard();
-  h += `<div class="card"><h2>Uống nước <small>${d.water}/${WG} ly · ${fmtL(d.water * ml)}/${fmtL(WG * ml)} <button class="chip sm gear" data-spgo="water" aria-label="Cài đặt uống nước">⚙️</button></small></h2><div class="cups" style="grid-template-columns:repeat(${Math.min(8, WG)},minmax(0,1fr))">${Array.from({ length: WG }, (_, i) => `<button class="cup" data-w="${i}" aria-label="Ly ${i + 1}">${cupSvg(i < d.water)}</button>`).join('')}</div>
-  ${d.water > WG ? `<p class="muted" style="margin:6px 0 0">Đã uống thêm ${d.water - WG} ly ngoài mục tiêu 💙</p>` : ''}${d.water >= WG ? `<button class="chip sm" data-a="waterPlus" style="margin-top:8px">＋ Uống thêm 1 ly</button>` : ''}
-  ${wx.ml ? `<p class="muted" style="margin:6px 0 0">Hôm nay mục tiêu +${Math.round(wx.ml / ml)} ly vì ${wx.why.join(' và ')}.</p>` : ''}<button class="linkbtn" data-a="goWater">📊 Xem lịch sử uống nước</button></div>`;
-  const nC = Object.values(S.days).reduce((a, x) => a + ((x && x.candies) || []).length, 0);
-  h += `<div class="card"><h2>Lọ Kẹo Niềm Vui <small>${nC} viên</small></h2><div class="jar">${jarSvg(nC)}<div class="jarside">
+      .join('')}${d.lazy ? '' : '<button class="linkbtn" data-a="lazyOn">🛋️ Hôm nay muốn nghỉ? Bật Ngày Lười Biếng</button>'}</div>`;
+  C.top3 = () => {
+    const T3 = d.top3.map(top3Slot);
+    return `<div class="card"><h2>3 việc quan trọng nhất <small>${T3.filter(x => x.d && x.t).length}/3</small></h2>${T3.map((x, i) => `<div class="task ${x.d ? 'done' : ''}"><input type="checkbox" data-t="${i}" ${x.d ? 'checked' : ''} aria-label="Xong việc ${i + 1}">${x.tid ? `<button class="t3link" data-topen="${x.tid}">⭐ ${esc(x.t)}</button>` : `<input type="text" data-tt="${i}" value="${esc(x.t)}" placeholder="Việc số ${i + 1}…">`}</div>`).join('')}${!T3.some(x => x.tid) && S.tasks.some(t => !t.done) ? '<p class="muted" style="margin:6px 0 0">Mẹo: bấm ⭐ ở tab Việc để đưa việc lên đây.</p>' : ''}</div>`;
+  };
+  C.sched = () => schedCard();
+  C.gym = () => {
+    const awo = activeWo(),
+      gk = S.gym.days.length && planFor(new Date());
+    if (awo)
+      return `<div class="card"><h2>🏋️ Đang tập dở: ${esc(awo.label)}</h2><button class="btn full" data-a="goGym">Tiếp tục buổi tập</button></div>`;
+    if (gk && !doneWos().some(w => w.date === dk(new Date())))
+      return `<div class="card"><h2>💪 Hôm nay là ngày tập <small>${S.gym.time}</small></h2><p class="muted" style="margin:0 0 10px">${d.lazy ? '🛋️ Ngày Lười Biếng: đổi sang giãn cơ 10 phút nhé.' : SPLITS[gk][0] + ': ' + SPLITS[gk][1].map(gName).join(' · ')}</p><button class="btn ghost full" data-a="goGym">Xem gợi ý bài tập</button></div>`;
+    return '';
+  };
+  C.bells = () => {
+    const nb = S.tasks.filter(needsBell).sort(sortTasks);
+    return nb.length
+      ? `<div class="card"><h2>🔔 Việc chưa có chuông <small>${nb.length}</small></h2><p class="muted" style="margin:0 0 4px">Mấy việc này chọn mức 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0, 3).map(taskRow).join('')}</div>`
+      : '';
+  };
+  C.habits = () => habitsCard();
+  C.candy = () => {
+    const nC = candyCount();
+    return `<div class="card"><h2>Lọ Kẹo Niềm Vui <small>${nC} viên</small></h2><div class="jar">${jarSvg(nC)}<div class="jarside">
     <form id="candyF"><input class="inp" id="candy" placeholder="Một niềm vui nhỏ hôm nay…" maxlength="120"><button class="btn" style="margin-top:8px">+ Thả kẹo</button></form>
     ${d.candies.length ? `<p class="muted" style="margin:8px 0 0">Hôm nay: ${d.candies.map(esc).join(' · ')}</p>` : ''}</div></div></div>`;
-  h += notesCard();
+  };
+  C.notes = () => notesCard();
+  h += cardOrder()
+    .filter(cardOn)
+    .map(k => C[k]())
+    .join('');
+  h += `<button class="linkbtn" data-spgo="todaycards" style="display:block;margin:16px auto 0">✏️ Sắp xếp / ẩn các thẻ</button>`;
   return h;
 }
 

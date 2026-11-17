@@ -278,6 +278,11 @@ details.more summary::after{content:' ▾';color:var(--soft)}
 @keyframes petalfall{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(-26px,52vh) rotate(200deg)}100%{transform:translate(22px,106vh) rotate(430deg)}}
 #snow i.fw{position:absolute;width:5px;height:5px;border-radius:50%;box-shadow:0 0 6px currentColor}
 .spk{animation:spk .25s steps(2) infinite;transform-origin:163px 84px}@keyframes spk{50%{transform:rotate(22deg) scale(1.15)}}
+.lazycard{background:linear-gradient(135deg,light-dark(#EEF6FF,#24304A),light-dark(#F5F0FF,#2E2840))}
+.wblock{background:var(--card2);border-radius:18px;padding:10px 12px;margin-bottom:10px}.wbh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.wbh span{flex:1;font-size:13px;color:var(--soft);text-align:right}
+.blk.pend{border-left-color:var(--butter)}.smain i.over{color:#D9534F;font-weight:700}
+.corow{display:flex;align-items:center;gap:6px;padding:6px 0;border-top:1px dashed var(--line)}.corow:first-of-type{border-top:0}.corow.off{opacity:.55}.corow .xbtn:disabled{opacity:.25}
+:root.calm *,:root.calm *::before,:root.calm *::after{animation:none!important;transition:none!important}:root.calm #snow{display:none!important}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:380px){.top h1{font-size:22px}.sum b{font-size:19px}}
 </style>

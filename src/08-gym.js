@@ -121,6 +121,8 @@ function lastTrained(g) {
   return null;
 }
 function recovery(g) {
+  const c = today().checkin;
+  if (c && c.body === 'sore' && (c.sore || []).includes(g)) return { s: 'rest', txt: 'đang đau 🤕' };
   const t = lastTrained(g);
   if (!t) return { s: 'long', txt: 'chưa tập' };
   const h = (Date.now() - t) / 36e5;
@@ -176,7 +178,11 @@ function suggest() {
         : null;
   const notes = [];
   let mode = 'normal';
-  if (c.body === 'sick') {
+  const sore = c.body === 'sore' ? c.sore || [] : [];
+  if (today().lazy && c.body !== 'sick') {
+    mode = 'rest';
+    notes.push('🛋️ Ngày Lười Biếng: thay buổi tập bằng giãn cơ nhẹ nhàng 10 phút nhé.');
+  } else if (c.body === 'sick') {
     mode = 'rest';
     notes.push('🤒 Hôm nay bạn đang ốm: nghỉ ngơi là chính. Nếu thấy ổn, đi bộ nhẹ 15–20 phút hoặc giãn cơ 10 phút.');
   } else if (c.energy && c.energy <= 2) {
@@ -189,7 +195,11 @@ function suggest() {
   }
   if (mode !== 'rest' && c.body === 'sore') {
     if (mode === 'normal') mode = 'light';
-    notes.push('🦵 Đang đau nhức cơ: tránh nhóm cơ đang đau, thêm giãn cơ cuối buổi.');
+    notes.push(
+      sore.length
+        ? '🤕 Đang đau ' + sore.map(gName).join(', ') + ': tạm tránh nhóm này, thêm giãn cơ cuối buổi.'
+        : '🦵 Đang đau nhức cơ: tránh nhóm cơ đang đau, thêm giãn cơ cuối buổi.'
+    );
   }
   if (mode !== 'rest' && c.body === 'tired' && mode === 'normal') {
     mode = 'light';
@@ -200,11 +210,12 @@ function suggest() {
     skipped = [];
   if (mode === 'rest') {
     groups = ['stretch'];
-    title = 'Nghỉ / giãn cơ nhẹ';
+    title = today().lazy ? 'Giãn cơ 10 phút' : 'Nghỉ / giãn cơ nhẹ';
   } else if (key) {
     const [lb, gs] = SPLITS[key];
     title = lb;
     groups = gs.filter(g => {
+      if (sore.includes(g)) return false;
       const r = recovery(g);
       if (r.s === 'rest') {
         skipped.push(g);
@@ -216,7 +227,7 @@ function suggest() {
     if (!groups.length) {
       groups = GG.slice(0, 9)
         .map(x => x[0])
-        .filter(g => recovery(g).s === 'long')
+        .filter(g => recovery(g).s === 'long' && !sore.includes(g))
         .slice(0, 3);
       notes.push('💜 Gợi ý thay bằng nhóm lâu chưa tập.');
     }
@@ -224,7 +235,7 @@ function suggest() {
     title = null;
     groups = GG.slice(0, 9)
       .map(x => x[0])
-      .filter(g => recovery(g).s !== 'rest')
+      .filter(g => recovery(g).s !== 'rest' && !sore.includes(g))
       .sort((a, b) => ({ long: 0, ready: 1 })[recovery(a).s] - { long: 0, ready: 1 }[recovery(b).s])
       .slice(0, 3);
   }
@@ -323,7 +334,7 @@ function finishWorkout() {
 }
 function celebrate(power) {
   try {
-    if (!window.confetti || reduce) return;
+    if (!window.confetti || calm()) return;
     const o = {
       disableForReducedMotion: true,
       zIndex: 40,

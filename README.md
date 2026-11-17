@@ -17,20 +17,20 @@ Trợ lý cuộc sống nhỏ xinh cùng Bé Chibi — app cá nhân, chạy nga
 - App nhắc sao lưu nếu quá 7 ngày chưa làm.
 
 ## Cấu trúc (dành cho người sửa code)
-| File | Vai trò |
+| Đường dẫn | Vai trò |
 |---|---|
 | `index.html` | Khung trang + toàn bộ CSS |
-| `app.js` | Giao diện, Chibi, check-in, giấc ngủ, tab Việc + Pomodoro, nhắc nhở, Gym, sao lưu |
+| `src/*.js` | **Mã nguồn app**, chia theo phần (core, Chibi, Việc, Nhắc nhở, Pomodoro, Gym, Thói quen, Cài đặt…) |
+| `app.js` | Tệp ghép từ `src/` – **không sửa trực tiếp** |
+| `tools/build.mjs` | Ghép `src/` → `app.js`: `node tools/build.mjs` |
+| `tests/smoke.py` | Bộ kiểm thử tự động (Chrome + Playwright): `python3 tests/smoke.py` |
 | `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / workouts / snapshots) |
+| `backup.js` | Tạo và đọc file sao lưu (.json, tùy chọn mã hóa) |
 | `exercises.js` | Thư viện 71 bài tập tiếng Việt (dữ liệu gốc free-exercise-db, Unlicense) |
 | `img/ex/` | Hình tư thế 46 bài (Everkinetic, CC BY-SA 4.0 – chỉ nén dung lượng) |
-| `vendor/body-highlighter.js` | body-highlighter 3.0.2 (MIT) – hình cơ thể tô nhóm cơ, đã kiểm tra không gọi mạng |
-| `vendor/confetti.js` | canvas-confetti 1.9.4 (ISC) – hiệu ứng hoa giấy, đã kiểm tra không gọi mạng |
-| `backup.js` | Tạo và đọc file sao lưu (.json, tùy chọn mã hóa) |
-| `sw.js` | Service worker: chạy offline |
-| `manifest.webmanifest`, `icons/` | Thông tin cài đặt PWA |
-| `fonts/` | Quicksand & Nunito tự lưu (giấy phép SIL OFL) |
+| `vendor/` | canvas-confetti (ISC), body-highlighter (MIT) – đã kiểm tra không gọi mạng |
+| `sw.js` | Service worker: chạy offline, tự kích hoạt bản mới |
+| `manifest.webmanifest`, `icons/`, `fonts/` | Thông tin cài đặt PWA, biểu tượng, phông chữ (SIL OFL) |
 
-Không cần build. **Mỗi lần sửa app:** tăng `VERSION` trong `sw.js` (và `APPVER` trong `app.js`) để điện thoại nhận bản mới — app sẽ hiện thông báo "Có bản Cozy Life mới".
-
-Trang được phục vụ từ nhánh `gh-pages` (bản sao của `main`): `git push origin main && git push origin main:gh-pages`.
+**Quy trình sửa:** sửa trong `src/` → `node tools/build.mjs` → `python3 tests/smoke.py` → tăng `VERSION` trong `sw.js` và `APPVER` trong `src/11-render-sheets-backup.js` → đẩy lên `main` và `gh-pages`:
+`git push origin main && git push origin main:gh-pages`.

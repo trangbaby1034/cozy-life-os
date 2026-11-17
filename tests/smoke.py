@@ -174,6 +174,68 @@ async def t_season(p):
         assert pill in await txt(pg, '#xpill'), (when, await txt(pg, '#xpill'))
         assert not pg.errs, pg.errs; await b.close()
 
+@T('Tab Hôm nay gọn: nước trong Thói quen, việc không giờ trong Thời gian biểu, ẩn/sắp xếp thẻ')
+async def t_cards(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 18, 9, 0, tzinfo=TZ))
+    assert await pg.locator('.card:has-text("🌱 Thói quen") .wblock .cup').count() == 8
+    assert await pg.locator('.card h2:has-text("Việc đến hạn")').count() == 0
+    await pg.click('[data-tab=tasks]'); await pg.fill('#tnew', 'Đóng tiền điện'); await pg.press('#tnew', 'Enter')
+    await pg.click('.tmain:has-text("Đóng tiền điện")'); await pg.click('[data-tquick="0"]'); await pg.click('[data-tlv=none]'); await pg.click('[data-a=tSave]')
+    await pg.click('[data-tab=today]')
+    assert 'Đóng tiền điện' in await txt(pg, '.blk.pend')
+    await pg.locator('.blk.pend input').first.click(); await pg.clock.run_for(300)
+    assert await pg.locator('.blk.pend').count() == 0
+    await pg.click('[data-spgo=todaycards]')
+    await pg.click('[data-ctog=notes]')
+    for _ in range(4): await pg.click('[data-cmove="habits:-1"]')
+    await pg.click('[data-tab=today]')
+    assert await pg.locator('#nNew').count() == 0
+    order = await pg.evaluate("[...document.querySelectorAll('#view > .card h2')].map(h=>h.textContent.slice(0,14))")
+    ih = [i for i, o in enumerate(order) if 'Thói quen' in o][0]; it = [i for i, o in enumerate(order) if '3 việc' in o][0]
+    assert ih < it, order
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=todaycards]'); await pg.click('[data-a=cReset]'); await pg.click('[data-tab=today]')
+    assert await pg.locator('#nNew').count() == 1
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Ngày Lười Biếng: Chibi hỏi, ẩn việc không gấp, giãn cơ; vùng cơ đau')
+async def t_lazy(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 16, 9, 0, tzinfo=TZ))
+    await pg.click('[data-tab=tasks]')
+    for n in ['Việc gấp', 'Việc để sau']:
+        await pg.fill('#tnew', n); await pg.press('#tnew', 'Enter')
+    await pg.click('.tmain:has-text("Việc gấp")'); await pg.click('[data-tquick="0"]'); await pg.click('[data-a=tSave]')
+    await pg.click('[data-tab=health]'); await pg.click('[data-htab=gym]')
+    for d in ['1', '3', '5']: await pg.click(f'[data-gday="{d}"]')
+    await pg.click('[data-tab=today]'); await pg.click('[data-a=checkin]'); await pg.click('[data-f=energy][data-v="2"]'); await pg.click('[data-a=saveCheckin]')
+    await pg.clock.run_for(3000)
+    assert 'nghỉ chút nha' in await txt(pg, '#nudge'), await txt(pg, '#nudge')
+    await pg.click('[data-nudge=b0]'); await pg.clock.run_for(500)
+    assert await pg.locator('.lazycard').count() == 1
+    await pg.click('[data-tab=tasks]')
+    assert await pg.locator('.tt:has-text("Việc để sau")').count() == 0 and await pg.locator('.tt:has-text("Việc gấp")').count() == 1
+    await pg.click('[data-a=lazyAll]'); assert await pg.locator('.tt:has-text("Việc để sau")').count() == 1
+    await pg.click('[data-tab=health]'); assert 'Giãn cơ 10 phút' in await txt(pg, '#view .card h2')
+    await pg.click('[data-tab=today]'); await pg.click('[data-a=lazyOff]'); assert await pg.locator('.lazycard').count() == 0
+    # vùng cơ đau
+    await pg.click('[data-a=checkin]'); await pg.click('[data-f=energy][data-v="4"]'); await pg.click('[data-f=body][data-v=sore]')
+    assert await pg.locator('#soreBox:not(.hide)').count() == 1
+    await pg.click('[data-sore=chest]'); await pg.click('[data-a=saveCheckin]'); await pg.clock.run_for(500)
+    await pg.click('[data-tab=health]')
+    t = await txt(pg, '#view')
+    assert 'Đang đau Ngực' in t and 'Đẩy ngực' not in await txt(pg, '.sglist'), t[:300]
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Giảm hiệu ứng: tắt tuyết/hoa giấy, Chibi ngồi yên')
+async def t_lowfx(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 12, 10, 10, 0, tzinfo=TZ))
+    assert await pg.evaluate("document.getElementById('snow').children.length") > 0
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=me]'); await pg.click('[data-a=lowFx]'); await pg.clock.run_for(1000)
+    assert 'calm' in await pg.evaluate('document.documentElement.className')
+    assert await pg.evaluate("document.getElementById('snow').children.length") == 0
+    x1 = await pg.evaluate("document.getElementById('pet').style.transform"); await pg.clock.run_for(15000)
+    assert x1 == await pg.evaluate("document.getElementById('pet').style.transform")
+    assert not pg.errs, pg.errs; await b.close()
+
 async def main():
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)

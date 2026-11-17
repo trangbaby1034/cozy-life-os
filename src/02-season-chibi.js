@@ -702,6 +702,7 @@ function drawChibi() {
     const se = season();
     ['xmas', 'ny', 'tet'].forEach(x => document.documentElement.classList.toggle(x, se === x));
   }
+  document.documentElement.classList.toggle('calm', calm());
   buildFx();
   seasonGreet();
   document.documentElement.classList.toggle('night', isNight());
@@ -717,7 +718,7 @@ function suggestions() {
   const last = S.sleeps[S.sleeps.length - 1],
     hrs = last && !last.sample ? (new Date(last.wake) - new Date(last.bed)) / 36e5 : null;
   if (c.body === 'sick' || c.energy <= 2)
-    out.push('🛋️ Hôm nay năng lượng thấp. Mình ẩn bớt việc không gấp và nghỉ ngơi nhẹ nhàng nha (Ngày Lười Biếng).');
+    if (!d.lazy) out.push('🛋️ Hôm nay năng lượng thấp. Nghỉ ngơi nhẹ nhàng nha, bấm "Bật Ngày Lười Biếng" bên dưới nếu muốn ẩn bớt việc.');
   if (hrs !== null && hrs < 6)
     out.push('😴 Đêm qua bạn ngủ khoảng ' + hrs.toFixed(1) + ' tiếng. Nếu tập thì chọn buổi nhẹ thôi.');
   if (c.weather === 'cold' || c.weather === 'humid')
@@ -726,7 +727,12 @@ function suggestions() {
   if (c.weather === 'rain') out.push('☂️ Trời mưa: nhớ mang ô hoặc áo mưa.');
   if (c.mood === 'stress') out.push('🍅 Hơi căng thẳng? Thử một phiên tập trung 25 phút rồi hít thở sâu 5 lần.');
   if (c.mood === 'sad') out.push('🍬 Mở Lọ Kẹo đọc lại vài niềm vui cũ nhé, mình ở đây với bạn.');
-  if (c.body === 'sore') out.push('🦵 Đang đau nhức cơ: hôm nay ưu tiên giãn cơ, tránh tập nhóm cơ đang đau.');
+  if (c.body === 'sore')
+    out.push(
+      '🦵 Đang đau nhức ' +
+        ((c.sore || []).length ? c.sore.map(gName).join(', ') : 'cơ') +
+        ': hôm nay ưu tiên giãn cơ, tránh tập nhóm cơ đang đau.'
+    );
   if (!out.length) out.push('🌷 Mọi thứ ổn áp! Chọn 3 việc quan trọng nhất và bắt đầu thôi.');
   return out;
 }

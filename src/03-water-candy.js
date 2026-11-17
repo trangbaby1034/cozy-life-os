@@ -71,7 +71,7 @@ function candyDrop(text) {
     render();
     say('Thêm một viên kẹo ngọt ngào vào lọ rồi 🍬');
   };
-  if (!jar || reduce || candyBusy || !Element.prototype.animate) return plain();
+  if (!jar || calm() || candyBusy || !Element.prototype.animate) return plain();
   candyBusy = true;
   if (document.activeElement) document.activeElement.blur();
   $('#candy').value = '';

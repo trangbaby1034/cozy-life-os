@@ -20,6 +20,32 @@ document.addEventListener('click', async e => {
     e.preventDefault();
     F[t.dataset.f] = isNaN(t.dataset.v) ? t.dataset.v : +t.dataset.v;
     t.parentNode.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', b === t));
+    if (t.dataset.f === 'body' && $('#soreBox')) $('#soreBox').classList.toggle('hide', F.body !== 'sore');
+    return;
+  }
+  if (t.dataset.sore) {
+    const k = t.dataset.sore;
+    F.sore = F.sore || [];
+    F.sore = F.sore.includes(k) ? F.sore.filter(x => x !== k) : F.sore.concat(k);
+    t.setAttribute('aria-pressed', F.sore.includes(k));
+    return;
+  }
+  if (t.dataset.cmove) {
+    const [k, dir] = t.dataset.cmove.split(':'),
+      o = cardOrder(),
+      i = o.indexOf(k),
+      j = i + +dir;
+    if (j < 0 || j >= o.length) return;
+    [o[i], o[j]] = [o[j], o[i]];
+    S.cardOrder = o;
+    render();
+    return;
+  }
+  if (t.dataset.ctog) {
+    const k = t.dataset.ctog,
+      H = S.cardHidden || [];
+    S.cardHidden = H.includes(k) ? H.filter(x => x !== k) : H.concat(k);
+    render();
     return;
   }
   if (t.dataset.star) {
@@ -554,6 +580,32 @@ document.addEventListener('click', async e => {
   }
   const a = t.dataset.a;
   if (!a) return;
+  if (a === 'lazyOn') {
+    setLazy(true);
+    return;
+  }
+  if (a === 'lazyOff') {
+    setLazy(false);
+    return;
+  }
+  if (a === 'lazyAll') {
+    showAllLazy = !showAllLazy;
+    render();
+    return;
+  }
+  if (a === 'lowFx') {
+    S.lowFx = !S.lowFx;
+    render();
+    wander();
+    say(S.lowFx ? 'Mình ngồi yên một góc cho đỡ tốn pin nha 🔋' : 'Hihi, mình lại được chạy nhảy rồi 🏃', 3000);
+    return;
+  }
+  if (a === 'cReset') {
+    S.cardOrder = [];
+    S.cardHidden = [];
+    render();
+    return;
+  }
   if (a === 'hReset') {
     HDEF().forEach(x => {
       if (!S.habits.some(h => h.id === x.id)) S.habits.push(x);

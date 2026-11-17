@@ -8,7 +8,8 @@ const GROUPS = [
 const gInfo = g => GROUPS.find(x => x[0] === g) || GROUPS[2];
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const taskById = id => S.tasks.find(t => t.id === id);
-let tfilter = 'all',
+let showAllLazy = false,
+  tfilter = 'all',
   editId = null;
 const fmtDue = k => {
   const [y, m, d] = k.split('-');
@@ -84,7 +85,9 @@ function taskRow(t) {
 function viewTasks() {
   const td = dk(new Date()),
     inF = t => tfilter === 'all' || t.group === tfilter;
-  const open = S.tasks.filter(t => !t.done && inF(t)),
+  const urgent = t => (t.due && t.due <= td) || inTop3(t.id),
+    lazyHide = today().lazy && !showAllLazy;
+  const open = S.tasks.filter(t => !t.done && inF(t) && (!lazyHide || urgent(t))),
     done = S.tasks.filter(t => t.done && inF(t)).sort((a, b) => String(b.doneAt).localeCompare(String(a.doneAt)));
   const pp = pomoState(),
     pomoTop = !!pp.endAt || pomoLeft() < pomoLen(pp.mode) || pp.mode !== 'focus';
@@ -92,6 +95,8 @@ function viewTasks() {
   h += `<div class="card"><h2>📋 Việc cần làm <small>${S.tasks.filter(t => !t.done).length} việc</small></h2>
   <form id="taskF" class="addrow"><input class="inp" id="tnew" placeholder="Thêm việc mới…" maxlength="140" autocomplete="off" enterkeyhint="done"><button class="btn" aria-label="Thêm việc">＋</button></form>
   <div class="row gpick" role="group" aria-label="Nhóm của việc mới">${GROUPS.map(([k, i, n]) => `<button class="chip sm" data-tg="${k}" aria-pressed="${S.taskGroup === k}">${i} ${n}</button>`).join('')}</div></div>`;
+  if (today().lazy)
+    h += `<div class="card lazycard"><p style="margin:0 0 8px">🛋️ <b>Ngày Lười Biếng</b>: ${lazyHide ? 'chỉ hiện việc đến hạn hôm nay, quá hạn hoặc ⭐. Các việc khác để mai tính nha.' : 'đang hiện tất cả việc.'}</p><button class="chip sm" data-a="lazyAll">${lazyHide ? 'Hiện tất cả việc (' + S.tasks.filter(t => !t.done && !urgent(t)).length + ' việc đang ẩn)' : 'Chỉ hiện việc gấp'}</button></div>`;
   h += `<div class="wtabs" style="margin-top:14px">${[['all', 'Tất cả']]
     .concat(GROUPS.map(([k, i, n]) => [k, i + ' ' + n]))
     .map(([k, n]) => `<button data-tf="${k}" aria-pressed="${tfilter === k}">${n}</button>`)

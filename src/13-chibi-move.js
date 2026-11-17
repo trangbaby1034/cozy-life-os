@@ -5,6 +5,7 @@ const pet = $('#pet'),
   P = { x: 0, y: 0, t: 0, drag: false, down: null };
 const rnd = (a, b) => a + Math.random() * (b - a);
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const calm = () => reduce || !!S.lowFx; /* Giảm hiệu ứng: theo máy hoặc theo Cài đặt */
 function bounds() {
   const nav = document.querySelector('nav').offsetHeight;
   return { minX: 6, maxX: Math.max(6, innerWidth - PW - 6), minY: 70, maxY: Math.max(70, innerHeight - nav - PH - 2) };
@@ -25,7 +26,7 @@ const IDLE = [
 ];
 function low() {
   const c = today().checkin || {};
-  return isNight() || c.mood === 'sleepy' || c.body === 'sick' || c.body === 'tired' || (c.energy && c.energy <= 2);
+  return isNight() || today().lazy === true || c.mood === 'sleepy' || c.body === 'sick' || c.body === 'tired' || (c.energy && c.energy <= 2);
 }
 function wander() {
   clearTimeout(P.t);
@@ -39,7 +40,7 @@ function wander() {
     drawChibi();
     return;
   }
-  if (reduce || S.roam === false) {
+  if (calm() || S.roam === false) {
     pet.classList.remove('walking');
     place(b.maxX - 6, b.maxY, 600);
     return;
