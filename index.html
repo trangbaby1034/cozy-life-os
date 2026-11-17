@@ -179,6 +179,9 @@ details.more summary::after{content:' ▾';color:var(--soft)}
 .pmid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
 .ptime{font:700 46px Quicksand,sans-serif;font-variant-numeric:tabular-nums;letter-spacing:1px}.pmode{font-size:14px;color:var(--soft);font-weight:700}
 .pround{color:var(--peach);letter-spacing:5px;font-size:12px}.pfor{text-align:center;margin:0 0 10px;font-size:14px}
+.nudge{position:fixed;left:12px;right:12px;bottom:calc(80px + env(safe-area-inset-bottom));z-index:16;max-width:496px;margin:0 auto;background:var(--card2);border-radius:20px;padding:12px 12px 10px 16px;box-shadow:0 8px 28px rgba(74,62,61,.22);border-left:6px solid var(--peach)}
+.nudge p{margin:0 0 8px;font-size:15px}.nudge .row{align-items:center}.nudge .btn{min-height:40px;padding:8px 14px;font-size:14px}.nudge .xbtn{margin-left:auto}
+.nobell{color:light-dark(#B07A1F,#FFD98A)}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:380px){.top h1{font-size:22px}.sum b{font-size:19px}}
 </style>
@@ -197,6 +200,7 @@ details.more summary::after{content:' ▾';color:var(--soft)}
 <div class="sheet-bg" id="sheetbg"><div class="sheet" role="dialog" aria-modal="true" id="sheet"></div></div>
 <input type="file" id="impf" accept=".json,application/json" class="hide">
 <button class="toast hide" id="toast"></button>
+<div class="nudge hide" id="nudge" role="status" aria-live="polite"></div>
 
 <div class="sleepcover" id="sleepcover">
   <div class="bigchibi" id="chibiSleep"></div>

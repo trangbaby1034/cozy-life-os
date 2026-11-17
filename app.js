@@ -16,7 +16,7 @@ const PRAISE=['Hôm nay {n} giỏi lắm đó!','{n} ơi, uống ngụm nước 
 const HAIRC=['#2B2223','#4A3530','#6B4A3A','#C98B6B','#F4A7B9'];
 
 const LOOKDEF0={face:'auto',blush:'soft',lip:'#E8848D',lash:'natural',freckles:false,eyewear:'none',head:'none',ear:'stud',watch:true,bag:true};
-const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none'});
+const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null});
 
 /* ---------- Đọc dữ liệu từ máy ---------- */
 let S=DEF();
@@ -32,6 +32,8 @@ function normalize(){
   if(!S.taskGroup)S.taskGroup='work';
   if(![15,25,45].includes(S.pomoLen))S.pomoLen=25;
   if(!S.pomoSound)S.pomoSound='none';
+  S.remindDefault=Object.assign({task:'cal',bed:'chibi'},S.remindDefault||{});
+  if(!S.nudgeLog||typeof S.nudgeLog!=='object')S.nudgeLog={};
   if(!S.v2){const d=DEF();Object.assign(S,{hair:d.hair,hairColor:d.hairColor,fav:d.fav,autoSwap:true,v2:true})}
 }
 const loaded=await CozyDB.loadState();
@@ -235,6 +237,8 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
   if(isNight()){h+=`<div class="card night-card"><h2>🌙 Giờ đi ngủ</h2>${d.evening?`<p class="muted" style="margin:0">Bạn đã chúc ngủ ngon lúc ${hm(new Date(S.pendingBed||Date.now()))}. Ngủ ngon nha!</p>`:`<p class="muted" style="margin:0 0 12px">Khép lại ngày hôm nay trong 30 giây rồi đi ngủ thôi.</p><button class="btn full" data-a="evening">😴 Bắt đầu</button>`}</div>`}
   const T3=d.top3.map(top3Slot);
   h+=`<div class="card"><h2>3 việc quan trọng nhất <small>${T3.filter(x=>x.d&&x.t).length}/3</small></h2>${T3.map((x,i)=>`<div class="task ${x.d?'done':''}"><input type="checkbox" data-t="${i}" ${x.d?'checked':''} aria-label="Xong việc ${i+1}">${x.tid?`<button class="t3link" data-topen="${x.tid}">⭐ ${esc(x.t)}</button>`:`<input type="text" data-tt="${i}" value="${esc(x.t)}" placeholder="Việc số ${i+1}…">`}</div>`).join('')}${!T3.some(x=>x.tid)&&S.tasks.some(t=>!t.done)?'<p class="muted" style="margin:6px 0 0">Mẹo: bấm ⭐ ở tab Việc để đưa việc lên đây.</p>':''}</div>`;
+  const nb=S.tasks.filter(needsBell).sort(sortTasks);
+  if(nb.length)h+=`<div class="card"><h2>🔔 Việc chưa có chuông <small>${nb.length}</small></h2><p class="muted" style="margin:0 0 4px">Mấy việc này chọn mức 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0,3).map(taskRow).join('')}</div>`;
   const dueL=S.tasks.filter(t=>!t.done&&t.due&&t.due<=dk(new Date())).sort(sortTasks);
   if(dueL.length)h+=`<div class="card"><h2>📋 Việc đến hạn <small>${dueL.length}</small></h2>${dueL.slice(0,5).map(taskRow).join('')}<button class="btn ghost full" data-tab="tasks" style="margin-top:8px">Mở tab Việc</button></div>`;
   h+=`<div class="card"><h2>Uống nước <small>${d.water}/8 ly</small></h2><div class="cups">${Array.from({length:8},(_,i)=>`<button class="cup" data-w="${i}" aria-label="Ly ${i+1}">${cupSvg(i<d.water)}</button>`).join('')}</div></div>`;
@@ -285,7 +289,7 @@ function delTask(id){const t=taskById(id);if(!t)return;
   S.tasks=S.tasks.filter(x=>x.id!==id);if(S.pomo&&S.pomo.taskId===id)S.pomo.taskId=null}
 const safeUrl=u=>{u=(u||'').trim();if(!u)return '';if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u='https://'+u;return /^(https?|mailto|tel):/i.test(u)?u:''};
 function taskRow(t){const di=dueInfo(t),subs=t.subs||[],sd=subs.filter(s=>s.d).length,st=inTop3(t.id);
-  return `<div class="trow ${t.done?'done':''}"><input type="checkbox" data-tdone="${t.id}" ${t.done?'checked':''} aria-label="Xong: ${esc(t.title)}"><button class="tmain" data-topen="${t.id}"><span class="tt">${esc(t.title)}</span><span class="tmeta">${di&&!t.done?`<i class="due ${di.cls}">⏰ ${di.txt}</i>`:''}${subs.length?`<i>☑️ ${sd}/${subs.length}</i>`:''}${t.link?'<i>🔗 Link</i>':''}${t.note?'<i>📝</i>':''}</span></button><button class="star ${st?'on':''}" data-tstar="${t.id}" aria-label="${st?'Bỏ khỏi':'Đưa lên'} Top 3" aria-pressed="${st}">⭐</button></div>`}
+  return `<div class="trow ${t.done?'done':''}"><input type="checkbox" data-tdone="${t.id}" ${t.done?'checked':''} aria-label="Xong: ${esc(t.title)}"><button class="tmain" data-topen="${t.id}"><span class="tt">${esc(t.title)}</span><span class="tmeta">${di&&!t.done?`<i class="due ${di.cls}">⏰ ${di.txt}</i>`:''}${!t.done&&t.due?(lvl(t)==='chibi'?'<i>💬</i>':['cal','alarm'].includes(lvl(t))?(t.bell?'<i>🔔</i>':'<i class="nobell">🔕 chưa có chuông</i>'):''):''}${subs.length?`<i>☑️ ${sd}/${subs.length}</i>`:''}${t.link?'<i>🔗 Link</i>':''}${t.note?'<i>📝</i>':''}</span></button><button class="star ${st?'on':''}" data-tstar="${t.id}" aria-label="${st?'Bỏ khỏi':'Đưa lên'} Top 3" aria-pressed="${st}">⭐</button></div>`}
 function viewTasks(){const td=dk(new Date()),inF=t=>tfilter==='all'||t.group===tfilter;
   const open=S.tasks.filter(t=>!t.done&&inF(t)),done=S.tasks.filter(t=>t.done&&inF(t)).sort((a,b)=>String(b.doneAt).localeCompare(String(a.doneAt)));
   const pp=pomoState(),pomoTop=!!pp.endAt||pomoLeft()<pomoLen(pp.mode)||pp.mode!=='focus';
@@ -310,11 +314,116 @@ function taskSheet(id){const t=taskById(id);if(!t)return;editId=id;const st=inTo
   <div class="q"><h3>Nhóm</h3><div class="row">${GROUPS.map(([k,i,n])=>`<button class="chip sm" data-tsg="${k}" aria-pressed="${t.group===k}">${i} ${n}</button>`).join('')}</div></div>
   <div class="q"><h3>Hạn chót</h3><div class="row" style="flex-wrap:nowrap"><input class="inp" type="date" id="tDue" value="${t.due||''}" aria-label="Ngày hạn"><input class="inp" type="time" id="tTime" value="${t.dueTime||''}" style="max-width:130px" aria-label="Giờ hạn"></div>
    <div class="row" style="margin-top:8px">${[['0','Hôm nay'],['1','Ngày mai'],['7','Tuần sau'],['x','Không hạn']].map(([k,n])=>`<button class="chip sm" data-tquick="${k}">${n}</button>`).join('')}</div></div>
+  <div class="q"><h3>🔔 Nhắc nhở</h3><div id="remindBox">${remindHtml(t)}</div></div>
   <div class="q"><h3>Việc con</h3><div id="subs">${subsHtml(t)}</div><form id="subF" class="addrow" style="margin-top:6px"><input class="inp" id="subNew" placeholder="Thêm việc con…" maxlength="120" autocomplete="off" enterkeyhint="done"><button class="btn ghost" aria-label="Thêm việc con">＋</button></form></div>
   <div class="q"><h3>Link tài liệu</h3><div class="row" style="flex-wrap:nowrap"><input class="inp" type="url" id="tLink" value="${esc(t.link||'')}" placeholder="https://…" inputmode="url" autocapitalize="off">${lk?`<a class="btn ghost" href="${esc(lk)}" target="_blank" rel="noopener">Mở</a>`:''}</div></div>
   <div class="q"><h3>Ghi chú</h3><textarea class="inp" id="tNote" rows="3" maxlength="2000">${esc(t.note||'')}</textarea></div>
   <div class="row" style="margin-top:18px"><button class="btn" data-a="tSave">Xong</button><button class="btn ghost" data-tstar="${id}" data-insheet="1">${st?'⭐ Bỏ khỏi Top 3':'⭐ Đưa lên Top 3'}</button><button class="btn ghost" data-pomotask="${id}">🍅 Tập trung</button></div>
   <div class="row" style="margin-top:10px"><button class="btn ghost danger" data-a="tDel">🗑️ Xóa việc</button></div>`)}
+
+/* ---------- 🔔 Nhắc nhở ---------- */
+/* 4 mức: none 🔕 · chibi 💬 (trong app) · cal 📅 (Lịch iPhone qua file .ics) · alarm ⏰ (Báo thức – Đồng hồ) */
+const LV=[['none','🔕','Không nhắc'],['chibi','💬','Chibi nhắc'],['cal','📅','Lịch iPhone'],['alarm','⏰','Báo thức']];
+const lvInfo=k=>LV.find(x=>x[0]===k)||LV[0];
+const LEADS=[[0,'Đúng hạn'],[60,'Trước 1 giờ'],[1440,'Trước 1 ngày']];
+const lvl=t=>t.due?(t.remind||S.remindDefault.task):'none';
+const needsBell=t=>!t.done&&['cal','alarm'].includes(lvl(t))&&!t.bell&&t.due>=dk(new Date());
+/* thời điểm hạn chót (Date) – việc không có giờ coi như 9:00 sáng */
+function dueAt(t){if(!t.due)return null;const[h,m]=(t.dueTime||'09:00').split(':').map(Number);const d=new Date(t.due+'T00:00:00');d.setHours(h,m,0,0);return d}
+function alarmAt(t){const d=dueAt(t);return d?new Date(d.getTime()-(t.lead||0)*6e4):null}
+const fmtDT=d=>hm(d)+' '+pad(d.getDate())+'/'+pad(d.getMonth()+1);
+/* Đổi giờ/mức sau khi đã có chuông → chuông cũ trên iPhone không tự đổi */
+function bellChanged(t){if(t.bell){t.bell=false;t.oldBell=true}}
+
+/* --- File lịch .ics (RFC 5545) --- */
+const icsEsc=s=>String(s||'').replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+function icsFold(line){const enc=new TextEncoder();if(enc.encode(line).length<=73)return line;let out=[],cur='',n=0;for(const ch of line){const b=enc.encode(ch).length;if(n+b>73){out.push(cur);cur='';n=0}cur+=ch;n+=b}out.push(cur);return out.join('\r\n ')}
+const icsUTC=d=>d.toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+function buildIcs(ev){const L=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Cozy Life OS//VI','CALSCALE:GREGORIAN','METHOD:PUBLISH','BEGIN:VEVENT','UID:'+ev.uid+'@cozy-life-os','DTSTAMP:'+icsUTC(new Date()),'SUMMARY:'+icsEsc(ev.title)];
+  if(ev.date){const n=new Date(ev.date+'T00:00:00');n.setDate(n.getDate()+1);L.push('DTSTART;VALUE=DATE:'+ev.date.replace(/-/g,''),'DTEND;VALUE=DATE:'+dk(n).replace(/-/g,''))}
+  else L.push('DTSTART:'+icsUTC(ev.start),'DTEND:'+icsUTC(new Date(ev.start.getTime()+(ev.durMin||30)*6e4)));
+  if(ev.rrule)L.push('RRULE:'+ev.rrule);
+  if(ev.desc)L.push('DESCRIPTION:'+icsEsc(ev.desc));
+  if(ev.url)L.push('URL:'+String(ev.url).replace(/[\r\n]/g,''));
+  L.push('BEGIN:VALARM','ACTION:DISPLAY','DESCRIPTION:'+icsEsc(ev.title),'TRIGGER:'+ev.trigger,'END:VALARM','END:VEVENT','END:VCALENDAR');
+  return L.map(icsFold).join('\r\n')+'\r\n'}
+function taskIcs(t){const lead=t.lead||0,lk=safeUrl(t.link),desc=['Từ Cozy Life OS 🌷',t.note||'',lk?'Link: '+lk:''].filter(Boolean).join('\n');
+  if(!t.dueTime)return buildIcs({uid:t.id,title:'📋 '+t.title,date:t.due,trigger:lead===1440?'-PT15H':lead===60?'PT8H':'PT9H',desc,url:lk});
+  return buildIcs({uid:t.id,title:'📋 '+t.title,start:dueAt(t),durMin:30,trigger:lead===1440?'-P1D':lead===60?'-PT1H':'PT0S',desc,url:lk})}
+function bedIcs(){const[h,m]=S.bedTarget.split(':').map(Number),s=new Date();s.setHours(h,m,0,0);if(s<new Date())s.setDate(s.getDate()+1);
+  return buildIcs({uid:'cozy-bedtime',title:'🌙 Giờ đi ngủ – Cozy Life',start:s,durMin:15,rrule:'FREQ=DAILY',trigger:'-PT30M',desc:'Mở Cozy Life để khép lại ngày hôm nay rồi bấm "Đi ngủ" nhé 😴'})}
+let lastIcs=null;
+function deliverIcs(name,text){lastIcs={name,text};const blob=new Blob([text],{type:'text/calendar;charset=utf-8'}),url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(url);a.remove()},60000)}
+async function shareIcs(){if(!lastIcs)return;const f=new File([lastIcs.text],lastIcs.name,{type:'text/calendar'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(e){}}else deliverIcs(lastIcs.name,lastIcs.text)}
+
+/* --- Phần nhắc nhở trong chi tiết việc --- */
+function remindHtml(t){
+  if(!t.due)return `<p class="muted" style="margin:0">Đặt hạn chót ở trên để chọn cách nhắc.</p>`;
+  const L=lvl(t);let h=`<div class="row">${LV.map(([k,i,n])=>`<button class="chip sm" data-tlv="${k}" aria-pressed="${L===k}">${i} ${n}</button>`).join('')}</div>`;
+  if(L==='none')return h+`<p class="muted" style="margin:8px 0 0">Việc chỉ nằm trong danh sách, không ai nhắc.</p>`;
+  if(L==='chibi')return h+`<p class="muted" style="margin:8px 0 0">Chibi nhắc khi bạn mở app: trong ngày đến hạn${t.dueTime?' và trước giờ hạn 30 phút':''}. Không kêu, không báo khi app đang tắt.</p>`;
+  h+=`<div class="row" style="margin-top:8px">${LEADS.map(([v,n])=>`<button class="chip sm" data-tlead="${v}" aria-pressed="${(t.lead||0)===v}">${n}</button>`).join('')}</div>`;
+  if(L==='alarm'&&!t.dueTime)h+=`<p class="muted" style="margin:8px 0 0">💡 Báo thức cần giờ cụ thể. Chưa chọn giờ thì mình tính là 9:00 sáng.</p>`;
+  const at=alarmAt(t);
+  h+=`<div class="okline ${t.bell?'':'warn'}" style="margin:10px 0 0"><span>${t.bell?'🔔':'🔕'}</span><span>${t.bell?(L==='cal'?'Đã thêm vào Lịch iPhone':'Đã đặt báo thức')+' · báo lúc <b>'+fmtDT(at)+'</b>':'Chưa có chuông trên iPhone · sẽ báo lúc <b>'+fmtDT(at)+'</b>'}</span></div>`;
+  if(t.oldBell)h+=`<p class="muted" style="margin:6px 0 0">⚠️ Bạn vừa đổi giờ hoặc mức nhắc. Nhớ xóa ${L==='alarm'?'báo thức':'sự kiện'} cũ trên iPhone rồi đặt lại nhé.</p>`;
+  if(!t.bell)h+=`<h3 style="font-size:15px;margin:14px 0 8px">Đặt chuông chưa?</h3><div class="row"><button class="btn" data-bell="set">✅ Đặt giúp tôi</button><button class="btn ghost" data-bell="done">👌 Tôi đặt rồi</button><button class="btn ghost" data-bell="later">⏰ Để sau</button></div>`;
+  else h+=`<div class="row" style="margin-top:8px"><button class="chip sm" data-bell="set">${L==='cal'?'📅 Thêm lại vào Lịch':'⏰ Xem lại cách đặt'}</button><button class="chip sm" data-bell="unset">Đánh dấu chưa có chuông</button></div>`;
+  return h}
+function refreshRemind(){const t=taskById(editId),el=$('#remindBox');if(t&&el)el.innerHTML=remindHtml(t)}
+function bellAction(kind){const t=taskById(editId);if(!t)return;const L=lvl(t);
+  if(kind==='done'){t.bell=true;t.oldBell=false;t.bellAsk=null;say('Đã đánh dấu 🔔');}
+  else if(kind==='later'){t.bellAsk='later';say('Ok, lần sau mở app mình hỏi lại nha ⏰');}
+  else if(kind==='unset'){t.bell=false;}
+  else if(kind==='set'){
+    if(L==='cal'){deliverIcs('cozy-'+t.title.replace(/[^\p{L}\p{N}]+/gu,'-').slice(0,40)+'.ics',taskIcs(t));t.bell=true;t.oldBell=false;t.bellAsk=null;save();
+      openSheet(`<h2>📅 Thêm vào Lịch</h2><p class="muted">iPhone sẽ hiện bảng sự kiện "<b>${esc(t.title)}</b>". Bấm <b>Thêm vào Lịch</b> (hoặc <b>Thêm tất cả</b>) là xong. Lịch sẽ báo lúc <b>${fmtDT(alarmAt(t))}</b>, kể cả khi Cozy Life đang tắt.</p>
+      <p class="muted">Không thấy gì hiện ra? Bấm nút dưới, chọn <b>Lưu vào Tệp</b>, rồi mở file đó trong app Tệp.</p>
+      <div class="row" style="margin-top:12px"><button class="btn" data-a="backTask">Xong</button><button class="btn ghost" data-a="shareIcs">📤 Gửi file lịch</button></div>`);
+      return}
+    if(L==='alarm'){const at=alarmAt(t);
+      openSheet(`<h2>⏰ Đặt báo thức</h2><p>Mở app <b>Đồng hồ</b> → <b>Báo thức</b> → <b>＋</b>, đặt lúc <b style="font-size:20px">${hm(at)}</b> ngày <b>${pad(at.getDate())}/${pad(at.getMonth()+1)}</b>, nhãn "<b>${esc(t.title)}</b>".</p>
+      <p class="muted">Báo thức của iPhone chỉ chọn giờ, không chọn ngày, nên hãy đặt vào tối hôm trước hoặc sáng hôm đó. Bước sau mình sẽ làm Phím tắt "Cozy Nhắc" để tạo báo thức chỉ với một chạm.</p>
+      <div class="row" style="margin-top:12px"><a class="btn ghost" href="clock-alarm://">🕰️ Mở app Đồng hồ</a><button class="btn" data-a="alarmDone">👌 Tôi đặt rồi</button><button class="btn ghost" data-a="backTask">Để sau</button></div>`);
+      return}}
+  render();refreshRemind()}
+
+/* --- Chibi nhắc trong app (💬) + thanh nhắc --- */
+let nudgeCur=null;
+function lazyDay(){const c=today().checkin;return !!c&&(c.body==='sick'||c.energy<=2)}
+function showNudge(n){nudgeCur=n;const el=$('#nudge');
+  el.innerHTML=`<p>${n.text}</p><div class="row">${n.open?'<button class="btn" data-nudge="open">Xem</button>':''}<button class="btn ghost" data-nudge="snooze">Để sau</button>${n.stop?'<button class="btn ghost" data-nudge="stop">Đừng nhắc việc này nữa</button>':''}<button class="xbtn" data-nudge="close" aria-label="Đóng">✕</button></div>`;
+  el.classList.remove('hide');if(n.say)say(n.say,5000);if(n.act&&!P.act)startAct(n.act)}
+function hideNudge(){nudgeCur=null;$('#nudge').classList.add('hide')}
+function nudgeAction(k){const n=nudgeCur;if(!n)return;hideNudge();
+  if(k==='open'){if(n.taskId){tab='tasks';render();taskSheet(n.taskId)}else if(n.tab){tab=n.tab;render();if(n.after)n.after()}}
+  else if(k==='snooze'){S.nudgeSnooze=Date.now()+60*6e4;say('Ok, 1 tiếng nữa mình nhắc lại nha',2500)}
+  else if(k==='stop'){if(n.taskId){const t=taskById(n.taskId);if(t){t.remind='none';bellChanged(t)}}if(n.kind==='bed')S.remindDefault.bed='none';say('Mình sẽ không nhắc việc này nữa 🤐',2500);render()}
+  save()}
+function checkNudges(){
+  if(nudgeCur||focusing()||$('#sheetbg').classList.contains('on')||$('#sleepcover').classList.contains('on'))return;
+  if(S.nudgeSnooze&&Date.now()<S.nudgeSnooze)return;
+  const now=new Date(),td=dk(now),log=S.nudgeLog||(S.nudgeLog={});
+  /* giờ đi ngủ: trước 30 phút */
+  if(S.remindDefault.bed==='chibi'&&!today().evening&&log.bed!==td){const[h,m]=S.bedTarget.split(':').map(Number),b=new Date();b.setHours(h,m,0,0);const diff=(b-now)/6e4;
+    if(diff<=30&&diff>-90){log.bed=td;save();return showNudge({kind:'bed',text:'🌙 Còn '+Math.max(0,Math.round(diff))+' phút nữa là đến giờ đi ngủ ('+S.bedTarget+'). Khép lại ngày hôm nay nhé?',say:'Sắp đến giờ ngủ rồi '+S.name+' ơi 🥱',act:'yawn',open:true,tab:'today',after:()=>eveningSheet(),stop:true})}}
+  if(lazyDay())return; /* Ngày Lười Biếng: tạm im lặng */
+  const L=S.tasks.filter(t=>!t.done&&lvl(t)==='chibi'&&t.due&&t.due<=td);
+  /* sắp đến giờ hạn (30 phút) */
+  for(const t of L){if(!t.dueTime||t.due!==td)continue;const d=(dueAt(t)-now)/6e4,key=t.due+' '+t.dueTime;
+    if(d<=30&&d>-60&&(t.nudge||{}).soon!==key){t.nudge=Object.assign({},t.nudge,{soon:key,day:td});save();
+      return showNudge({taskId:t.id,text:'⏰ "<b>'+esc(t.title)+'</b>" '+(d>0?'còn '+Math.round(d)+' phút nữa đến hạn ('+t.dueTime+')':'đã đến hạn lúc '+t.dueTime),say:'Việc này sắp đến hạn rồi nè!',act:'laptop',open:true,stop:true})}}
+  /* trong ngày / quá hạn: mỗi ngày 1 lần */
+  const fresh=L.filter(t=>(t.nudge||{}).day!==td);
+  if(fresh.length&&now.getHours()>=7){fresh.forEach(t=>{t.nudge=Object.assign({},t.nudge,{day:td})});save();
+    if(fresh.length===1){const t=fresh[0];return showNudge({taskId:t.id,text:(t.due<td?'⚠️ "<b>'+esc(t.title)+'</b>" đã quá hạn '+fmtDue(t.due):'📋 Hôm nay đến hạn: "<b>'+esc(t.title)+'</b>"'+(t.dueTime?' lúc '+t.dueTime:'')),say:'Có việc cần làm nè '+S.name+'!',open:true,stop:true})}
+    return showNudge({text:'📋 Có <b>'+fresh.length+' việc</b> đến hạn hoặc quá hạn. Xem qua nhé?',say:'Có '+fresh.length+' việc đến hạn nè 📋',open:true,tab:'tasks'})}
+  /* việc 📅/⏰ chưa đặt chuông (bấm "Để sau"): hỏi lại mỗi ngày 1 lần */
+  const ask=S.tasks.filter(t=>needsBell(t)&&t.bellAsk==='later');
+  if(ask.length&&log.bellAsk!==td){log.bellAsk=td;save();
+    return showNudge({taskId:ask.length===1?ask[0].id:null,tab:'today',text:'🔔 '+(ask.length===1?'"<b>'+esc(ask[0].title)+'</b>" chưa có chuông trên iPhone.':ask.length+' việc chưa có chuông trên iPhone.')+' Đặt luôn nhé?',open:true})}}
 
 /* ---------- 🍅 Pomodoro ---------- */
 const PLEN={short:5,long:15};
@@ -409,13 +518,19 @@ function viewSettings(){const st=state(),L=S.look;
   <div class="q"><h3>Chibi di chuyển</h3><div class="row"><button class="chip" data-roam="1" aria-pressed="${S.roam!==false}">🏃 Chạy lung tung</button><button class="chip" data-roam="0" aria-pressed="${S.roam===false}">🪑 Ngồi yên một góc</button></div><p class="muted" style="margin:6px 0 0">Mẹo: kéo Chibi để bế bé sang chỗ khác.</p></div>
   <div class="q"><h3>Âm thanh Chibi</h3><div class="row"><button class="chip" data-snd="1" aria-pressed="${S.sound!==false}">🔊 Bật (tiếng ực ực khi uống nước)</button><button class="chip" data-snd="0" aria-pressed="${S.sound===false}">🔇 Tắt</button></div></div>
   <div class="q"><h3>Giờ đi ngủ mục tiêu</h3><input class="inp" type="time" id="bt" value="${S.bedTarget}"></div></div>
+  <div class="card"><h2>🔔 Nhắc nhở</h2>
+  <p class="muted" style="margin:0 0 6px">App web trên iPhone chỉ tự nhắc được khi đang mở. Muốn được báo cả khi app tắt, chọn 📅 (thêm vào app Lịch) hoặc ⏰ (báo thức trong app Đồng hồ).</p>
+  <div class="q" style="margin-top:8px"><h3>Mặc định cho việc có hạn chót</h3><div class="row">${LV.map(([k,i,n])=>`<button class="chip sm" data-rdef="${k}" aria-pressed="${S.remindDefault.task===k}">${i} ${n}</button>`).join('')}</div><p class="muted" style="margin:6px 0 0">Từng việc vẫn đổi riêng được trong phần chi tiết.</p></div>
+  <div class="q"><h3>Giờ đi ngủ (${S.bedTarget})</h3><div class="row">${LV.slice(0,3).map(([k,i,n])=>`<button class="chip sm" data-rbed="${k}" aria-pressed="${S.remindDefault.bed===k}">${i} ${n}</button>`).join('')}</div>
+  ${S.remindDefault.bed==='chibi'?'<p class="muted" style="margin:6px 0 0">Trước giờ ngủ 30 phút, nếu đang mở app, Chibi sẽ nhắc bạn khép lại ngày.</p>':S.remindDefault.bed==='cal'?`<div class="okline ${S.bedBell?'':'warn'}" style="margin:8px 0 0"><span>${S.bedBell?'🔔':'🔕'}</span><span>${S.bedBell?'Đã thêm vào Lịch, báo trước 30 phút mỗi tối':'Chưa thêm vào Lịch'}</span></div><button class="btn ghost" style="margin-top:8px" data-a="bedIcs">📅 ${S.bedBell?'Thêm lại':'Thêm Giờ đi ngủ vào Lịch'} (lặp hằng ngày)</button>`:''}</div>
+  <p class="muted" style="margin:12px 0 0">💡 Ngày Lười Biếng (đang ốm hoặc năng lượng ≤ 2): Chibi tạm không nhắc việc. Sắp có: Trung tâm nhắc nhở, Giờ yên tĩnh, Phím tắt "Cozy Nhắc" để tạo báo thức một chạm.</p></div>
   ${dataCard()}
   ${standalone()?'':`<div class="card"><h2>📲 Cài lên màn hình chính</h2>${installHow()}</div>`}
   <div class="card demo"><h2>Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
   <h3 style="font-size:15px;margin:14px 0 8px">Hoạt động của Chibi</h3><p class="muted" style="margin:0 0 8px">Bình thường bé tự chọn theo tâm trạng và thể trạng hôm nay. Bấm để xem trước:</p><div class="row">${Object.keys(ACTNAME).map(k=>`<button class="chip" data-act="${k}">${ACTNAME[k]}</button>`).join('')}</div></div>
   <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.17-3';
+const APPVER='2026.11.18-1';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -530,13 +645,23 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.tf){tfilter=t.dataset.tf;if(tfilter!=='all')S.taskGroup=tfilter;render();return}
   if(t.dataset.tg){S.taskGroup=t.dataset.tg;render();$('#tnew')&&$('#tnew').focus();return}
   if(t.dataset.tsg){const tk=taskById(editId);if(!tk)return;tk.group=t.dataset.tsg;t.parentNode.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',b===t));render();return}
-  if(t.dataset.tquick){const tk=taskById(editId);if(!tk)return;const q=t.dataset.tquick;if(q==='x'){tk.due=null;tk.dueTime=''}else{const x=new Date();x.setDate(x.getDate()+(+q));tk.due=dk(x)}$('#tDue').value=tk.due||'';$('#tTime').value=tk.dueTime||'';render();return}
+  if(t.dataset.tquick){const tk=taskById(editId);if(!tk)return;const q=t.dataset.tquick;if(q==='x'){tk.due=null;tk.dueTime=''}else{const x=new Date();x.setDate(x.getDate()+(+q));tk.due=dk(x)}$('#tDue').value=tk.due||'';$('#tTime').value=tk.dueTime||'';bellChanged(tk);tk.nudge={};refreshRemind();render();return}
+  if(t.dataset.tlv){const tk=taskById(editId);if(!tk)return;if(lvl(tk)!==t.dataset.tlv){tk.remind=t.dataset.tlv;bellChanged(tk);tk.nudge={}}refreshRemind();render();return}
+  if(t.dataset.tlead!==undefined){const tk=taskById(editId);if(!tk)return;if((tk.lead||0)!==+t.dataset.tlead){tk.lead=+t.dataset.tlead;bellChanged(tk)}refreshRemind();render();return}
+  if(t.dataset.bell){bellAction(t.dataset.bell);return}
+  if(t.dataset.nudge){nudgeAction(t.dataset.nudge);return}
+  if(t.dataset.rdef){S.remindDefault.task=t.dataset.rdef;render();return}
+  if(t.dataset.rbed){S.remindDefault.bed=t.dataset.rbed;render();return}
   if(t.dataset.subdel){const tk=taskById(editId);if(!tk)return;tk.subs=(tk.subs||[]).filter(x=>x.id!==t.dataset.subdel);$('#subs').innerHTML=subsHtml(tk);render();return}
   if(t.dataset.plen){S.pomoLen=+t.dataset.plen;const p=pomoState();if(!p.endAt&&p.mode==='focus')p.left=pomoLen('focus');render();return}
   if(t.dataset.psnd){S.pomoSound=t.dataset.psnd;if(focusing())startNoise();render();return}
   if(t.dataset.pomotask){pomoState().taskId=t.dataset.pomotask;closeSheet();editId=null;tab='tasks';render();const pc=document.querySelector('.pomo');pc&&pc.scrollIntoView({behavior:'smooth',block:'center'});say('Chọn xong rồi, bấm Bắt đầu nhé 🍅',3000);return}
   const a=t.dataset.a;if(!a)return;
-  if(a==='pomoGo')pomoGo();
+  if(a==='backTask'){taskSheet(editId);render()}
+  else if(a==='shareIcs')shareIcs();
+  else if(a==='alarmDone'){const tk=taskById(editId);if(tk){tk.bell=true;tk.oldBell=false;tk.bellAsk=null}taskSheet(editId);render();say('Đã đánh dấu 🔔')}
+  else if(a==='bedIcs'){deliverIcs('cozy-gio-di-ngu.ics',bedIcs());S.bedBell=true;render();say('Bấm "Thêm vào Lịch" là tối nào iPhone cũng nhắc nha 🌙',5000)}
+  else if(a==='pomoGo')pomoGo();
   else if(a==='pomoReset')pomoStop();
   else if(a==='pomoSkip')pomoStop(pomoState().mode==='focus'?'short':'focus');
   else if(a==='pomoUntask'){pomoState().taskId=null;render()}
@@ -569,13 +694,14 @@ document.addEventListener('change',e=>{const t=e.target;
   if(editId&&['tTitle','tDue','tTime','tLink','tNote'].includes(t.id)){const tk=taskById(editId);if(!tk)return;
     if(t.id==='tTitle'){const v=t.value.trim();if(v)tk.title=v;else t.value=tk.title}
     if(t.id==='tDue')tk.due=t.value||null;if(t.id==='tTime')tk.dueTime=t.value||'';if(t.id==='tNote')tk.note=t.value;
+    if(t.id==='tDue'||t.id==='tTime'){bellChanged(tk);tk.nudge={};refreshRemind()}
     if(t.id==='tLink'){tk.link=t.value.trim();render();taskSheet(editId);return}
     render();return}
   if(editId&&(t.dataset.sub||t.dataset.subt)){const tk=taskById(editId),sb=tk&&(tk.subs||[]).find(x=>x.id===(t.dataset.sub||t.dataset.subt));if(!sb)return;
     if(t.dataset.sub)sb.d=t.checked;else{const v=t.value.trim();if(v)sb.t=v;else t.value=sb.t}
     $('#subs').innerHTML=subsHtml(tk);render();return}
   if(t.id==='nm'){S.name=t.value.trim()||'bạn';render();return}
-  if(t.id==='bt'&&t.value){S.bedTarget=t.value;render()}
+  if(t.id==='bt'&&t.value){S.bedTarget=t.value;if(S.remindDefault.bed==='cal'&&S.bedBell){S.bedBell=false;say('Nhớ xóa sự kiện Giờ đi ngủ cũ trong Lịch rồi thêm lại nhé',5000)}render()}
 });
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='impw'){e.preventDefault();const b=document.querySelector('[data-a=impw]');b&&b.click()}});
 document.addEventListener('submit',e=>{
@@ -655,7 +781,8 @@ else if(isNight())say('Sắp đến giờ ngủ rồi, '+S.name+' ơi 🌙');
 setInterval(()=>{if(!$('#sheetbg').classList.contains('on'))drawChibi()},60000);
 setInterval(pomoTick,1000);
 if(S.pomo&&S.pomo.endAt){if(pomoLeft()<=0)pomoDone(true);else if(focusing())keepAwake()}
-setTimeout(()=>{const n=S.tasks.filter(t=>!t.done&&t.due&&t.due<=dk(new Date())).length;if(n&&!isNight()&&!focusing()&&!$('#sheetbg').classList.contains('on'))say('Hôm nay có '+n+' việc đến hạn nè 📋 '+S.name+' xem qua nhé!',5000)},8000);
+setTimeout(checkNudges,6000);setInterval(checkNudges,30000);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(checkNudges,2500)});
 
 /* ---------- Offline & cập nhật bản mới ---------- */
 if('serviceWorker' in navigator&&location.protocol!=='file:'){
