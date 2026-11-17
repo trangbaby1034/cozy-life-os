@@ -495,6 +495,12 @@ const GG=[['chest','Ngực'],['back','Lưng'],['shoulders','Vai'],['biceps','Tay
 const gName=g=>(GG.find(x=>x[0]===g)||['',g])[1];
 const EQ=[['gym','🏋️ Phòng gym đầy đủ'],['db','🔩 Tạ đơn tại nhà'],['body','🙆 Chỉ trọng lượng cơ thể']];
 const eqIcon=e=>e==='gym'?'🏋️':e==='db'?'🔩':'🙆';
+const GBH={chest:['chest'],back:['upper-back','lower-back'],shoulders:['front-deltoids','back-deltoids'],biceps:['biceps'],triceps:['triceps'],quads:['quadriceps'],hams:['hamstring','gluteal'],calves:['calves'],core:['abs','obliques'],stretch:[]};
+const thumb=e=>e&&e.img?`<img class="exthumb" src="${e.img[e.img.length-1]}" alt="" loading="lazy" decoding="async">`:`<span class="exthumb none">${e?eqIcon(e.eq):''}</span>`;
+function drawBody(e){if(!window.CozyBody||!e)return;const pm=e.pm&&e.pm.length?e.pm:GBH[e.g]||[],sm=e.sm||[];
+  const data=[{name:'chính',muscles:pm},{name:'chính ',muscles:pm},{name:'phụ',muscles:sm}];
+  ['anterior','posterior'].forEach(t=>{const el=document.getElementById('body-'+t);if(!el)return;el.innerHTML='';try{window.CozyBody({container:el,data,type:t,bodyColor:'#DCD3CB',highlightedColors:['#FFBFB0','#EE6A64'],svgStyle:{width:'100%',height:'auto'}})}catch(err){}})}
+window.addEventListener('cozybody',()=>{const id=document.getElementById('sheet').dataset.ex;if(id&&$('#sheetbg').classList.contains('on'))drawBody(exById(id))});
 const GOALS=[['muscle','💪 Tăng cơ','8–12'],['fat','🔥 Giảm mỡ','12–15'],['endurance','🏃 Sức bền','15–20'],['fit','🌷 Giữ dáng','10–12']];
 const WD=['CN','T2','T3','T4','T5','T6','T7'],WDORDER=[1,2,3,4,5,6,0];
 const SPLITS={fullA:['Full Body A',['quads','chest','back','core']],fullB:['Full Body B',['hams','shoulders','back','triceps','biceps']],push:['Đẩy',['chest','shoulders','triceps']],pull:['Kéo',['back','biceps','core']],legs:['Chân',['quads','hams','calves']],upper:['Thân trên',['chest','back','shoulders','biceps','triceps']],lower:['Thân dưới',['quads','hams','calves','core']]};
@@ -559,7 +565,7 @@ function woCard(w){const mins=Math.round((Date.now()-new Date(w.start))/6e4);
   return `<div class="card wo"><h2>🏋️ Đang tập: ${esc(w.label)} <small>${mins} phút</small></h2>
   ${restEnd?`<div class="okline restbar"><span>⏱️</span><span>Nghỉ giữa set: <b id="restT">${mmss(Math.max(0,Math.ceil((restEnd-Date.now())/1000)))}</b></span><button class="chip sm" data-a="restPlus">+30s</button><button class="chip sm" data-a="restSkip">Bỏ qua</button></div>`:''}
   ${w.items.map((it,ii)=>{const e=exById(it.ex)||{n:it.ex,g:''},prev=lastSetsOf(it.ex),pr=prOf(it.ex,w.id),st=e.g==='stretch';
-   return `<div class="woex"><div class="woh"><button class="tmain" data-exinfo="${esc(it.ex)}"><span class="tt">${esc(e.n)}</span><span class="tmeta"><i>${gName(e.g)}</i><i>Mục tiêu ${esc(it.target||'')}${st?'':' lần'}</i>${prev?`<i>Lần trước: ${prev.map(s=>s.r+(s.kg?'×'+s.kg:'')).join(', ')}</i>`:''}${pr?`<i>🏆 ${pr}kg</i>`:''}</span></button><button class="xbtn" data-wodel="${ii}" aria-label="Bỏ bài này">✕</button></div>
+   return `<div class="woex"><div class="woh"><button class="thumbbtn" data-exinfo="${esc(it.ex)}" aria-label="Xem hình ${esc(e.n)}">${thumb(e)}</button><button class="tmain" data-exinfo="${esc(it.ex)}"><span class="tt">${esc(e.n)}</span><span class="tmeta"><i>${gName(e.g)}</i><i>Mục tiêu ${esc(it.target||'')}${st?'':' lần'}</i>${prev?`<i>Lần trước: ${prev.map(s=>s.r+(s.kg?'×'+s.kg:'')).join(', ')}</i>`:''}${pr?`<i>🏆 ${pr}kg</i>`:''}</span></button><button class="xbtn" data-wodel="${ii}" aria-label="Bỏ bài này">✕</button></div>
    ${it.sets.map((s,si)=>`<div class="setrow ${s.done?'done':''}"><span class="sn">${si+1}</span><input class="inp sm" type="number" inputmode="numeric" min="0" max="999" data-wr="${ii}:${si}" value="${s.r}" aria-label="Số ${st?'giây':'lần'}"><span class="u">${st?'giây':'lần'}</span>${st?'':`<input class="inp sm" type="number" inputmode="decimal" min="0" max="999" step="0.5" data-wk="${ii}:${si}" value="${s.kg}" placeholder="–" aria-label="Kg"><span class="u">kg</span>`}
    ${st?'':`<span class="feel">${[['e','Dễ'],['m','Vừa'],['h','Nặng']].map(([k,n])=>`<button class="fchip" data-wf="${ii}:${si}:${k}" aria-pressed="${s.f===k}">${n}</button>`).join('')}</span>`}<button class="sdone" data-wd="${ii}:${si}" aria-pressed="${s.done}" aria-label="Xong set ${si+1}">✓</button></div>`).join('')}
    <button class="chip sm" data-woadd="${ii}" style="margin-top:6px">＋ Thêm set</button></div>`}).join('')}
@@ -597,7 +603,7 @@ function viewGym(){const g=S.gym;if(!g.days.length&&!activeWo())return gymSetupC
     ${sg.notes.map(n=>`<div class="tip">${n}</div>`).join('')}
     ${!sg.training&&sg.mode!=='rest'?`<p class="muted" style="margin:8px 0">Muốn vận động thêm? Gợi ý nhóm cơ đã hồi phục / lâu chưa tập:</p>`:''}
     <div class="recrow">${(sg.groups.length?sg.groups:[]).map(x=>{const r=x==='stretch'?{s:'ready',txt:'phục hồi'}:recovery(x);return `<span class="rec ${r.s}">${REC[r.s][0]} ${gName(x)} <i>${r.txt}</i></span>`}).join('')}</div>
-    ${sg.items.length?`<div class="sglist">${sg.items.map(it=>{const e=exById(it.ex),p=lastSetsOf(it.ex);return `<button class="sgrow" data-exinfo="${esc(it.ex)}"><span><b>${esc(e.n)}</b><i>${gName(e.g)} · ${eqIcon(e.eq)}</i></span><span class="muted">${it.sets}×${esc(it.reps)}${p&&p[0].kg?' · '+p[0].kg+'kg':''}</span></button>`}).join('')}</div>`:'<p class="muted">Chưa có bài phù hợp, thử đổi dụng cụ trong Lịch tập.</p>'}
+    ${sg.items.length?`<div class="sglist">${sg.items.map(it=>{const e=exById(it.ex),p=lastSetsOf(it.ex);return `<button class="sgrow" data-exinfo="${esc(it.ex)}">${thumb(e)}<span class="grow"><b>${esc(e.n)}</b><i>${gName(e.g)} · ${eqIcon(e.eq)}</i></span><span class="muted">${it.sets}×${esc(it.reps)}${p&&p[0].kg?' · '+p[0].kg+'kg':''}</span></button>`}).join('')}</div>`:'<p class="muted">Chưa có bài phù hợp, thử đổi dụng cụ trong Lịch tập.</p>'}
     <div class="row" style="margin-top:12px"><button class="btn" data-a="woStart">▶️ ${sg.mode==='rest'?'Bắt đầu giãn cơ':'Bắt đầu buổi tập'}</button><button class="btn ghost" data-a="woPickGroups">Tập nhóm khác</button></div>
     <p class="muted" style="margin:10px 0 0">Gợi ý chỉ để tham khảo, bạn luôn có thể tự chọn lại.</p></div>`;
     h+=`<div class="card"><h2>🧭 Hồi phục từng nhóm cơ</h2><div class="recrow">${GG.slice(0,9).map(([k])=>{const r=recovery(k);return `<span class="rec ${r.s}">${REC[r.s][0]} ${gName(k)} <i>${r.txt}</i></span>`}).join('')}</div><p class="muted" style="margin:8px 0 0">🍑 vừa tập (&lt; 48 giờ) – nên nghỉ · 🍵 đã hồi phục · 💜 hơn 7 ngày chưa tập – ưu tiên</p></div>`}
@@ -613,7 +619,7 @@ let lib={g:'all',q:'',mine:true,pick:false};
 const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d');
 function libListHtml(){const q=fold(lib.q.trim());
   const L=allEx().filter(e=>(lib.g==='all'||e.g===lib.g)&&(!lib.mine||eqOK(e))&&(!q||fold(e.n+' '+e.en+' '+gName(e.g)).includes(q)));
-  return L.map(e=>`<button class="sgrow" data-${lib.pick?'expick':'exinfo'}="${esc(e.id)}"><span><b>${esc(e.n)}</b><i>${gName(e.g)} · ${eqIcon(e.eq)}${e.custom?' · tự tạo':''}</i></span><span class="muted">${lib.pick?'＋':'›'}</span></button>`).join('')||'<p class="muted">Không tìm thấy bài nào.</p>'}
+  return L.map(e=>`<button class="sgrow" data-${lib.pick?'expick':'exinfo'}="${esc(e.id)}">${thumb(e)}<span class="grow"><b>${esc(e.n)}</b><i>${gName(e.g)} · ${eqIcon(e.eq)}${e.custom?' · tự tạo':''}</i></span><span class="muted">${lib.pick?'＋':'›'}</span></button>`).join('')||'<p class="muted">Không tìm thấy bài nào.</p>'}
 function libSheet(pick){if(pick!==undefined)lib.pick=pick;
   openSheet(`<h2>📚 ${lib.pick?'Chọn bài để thêm':'Thư viện bài tập'}</h2>
   <input class="inp" id="libQ" placeholder="Tìm bài… (vd: squat, vai)" value="${esc(lib.q)}" style="margin-top:10px" autocomplete="off">
@@ -623,10 +629,14 @@ function libSheet(pick){if(pick!==undefined)lib.pick=pick;
   ${lib.pick?'':'<button class="btn ghost" style="margin-top:12px" data-a="exNew">＋ Thêm bài tự tạo</button>'}`)}
 function exInfo(id){const e=exById(id);if(!e)return;const pr=prOf(id),p=lastSetsOf(id),w=activeWo();
   openSheet(`<h2>${esc(e.n)}</h2><p class="muted" style="margin:2px 0 10px">${esc(e.en||'')} · ${gName(e.g)} · ${eqIcon(e.eq)} ${(EQ.find(x=>x[0]===e.eq)||['',''])[1].replace(/^\S+ /,'')}</p>
+  ${e.img?`<div class="eximgs">${e.img.map(u=>`<img src="${u}" alt="Tư thế ${esc(e.n)}" decoding="async">`).join('')}</div><p class="muted cap">${e.img.length>1?'Hai tư thế của động tác':'Tư thế của động tác'}${e.imgv?' · hình biến thể gần giống, xem lưu ý bên dưới':''} · hình: Everkinetic</p>`:''}
+  <div class="bodymap"><div><div id="body-anterior"></div><span>Mặt trước</span></div><div><div id="body-posterior"></div><span>Mặt sau</span></div></div>
+  <p class="muted cap"><i class="lg main"></i> Cơ chính <i class="lg sec"></i> Cơ phụ</p>
   ${e.d?`<p>${esc(e.d)}</p>`:''}${e.tip?`<div class="tip">💡 ${esc(e.tip)}</div>`:''}
   ${e.sec&&e.sec.length?`<p class="muted" style="margin:10px 0 0">Nhóm cơ phụ: ${e.sec.map(gName).join(', ')}</p>`:''}
   ${pr||p?`<div class="okline" style="margin-top:10px"><span>📈</span><span>${pr?'Kỷ lục: <b>'+pr+'kg</b>. ':''}${p?'Lần trước: '+p.map(s=>s.r+(s.kg?'×'+s.kg+'kg':'')).join(', '):''}</span></div>`:''}
-  <div class="row" style="margin-top:14px">${w&&!w.items.some(it=>it.ex===id)?`<button class="btn" data-expick="${esc(id)}">＋ Thêm vào buổi tập</button>`:''}${e.custom?`<button class="btn ghost danger" data-exdel="${esc(id)}">Xóa bài tự tạo</button>`:''}<button class="btn ghost" data-a="closeSheet">Đóng</button></div>`)}
+  ${e.en?`<a class="btn ghost full" style="margin-top:12px;justify-content:center" href="https://www.youtube.com/results?search_query=${encodeURIComponent(e.en+' exercise proper form')}" target="_blank" rel="noopener noreferrer">▶️ Xem video hướng dẫn (YouTube)</a>`:''}
+  <div class="row" style="margin-top:10px">${w&&!w.items.some(it=>it.ex===id)?`<button class="btn" data-expick="${esc(id)}">＋ Thêm vào buổi tập</button>`:''}${e.custom?`<button class="btn ghost danger" data-exdel="${esc(id)}">Xóa bài tự tạo</button>`:''}<button class="btn ghost" data-a="closeSheet">Đóng</button></div>`);$('#sheet').dataset.ex=id;drawBody(e)}
 function exNewSheet(){F={g:'chest',eq:S.gym.equip==='gym'?'gym':S.gym.equip};openSheet(`<h2>＋ Bài tự tạo</h2><div class="q"><input class="inp" id="exN" maxlength="60" placeholder="Tên bài, vd: Kéo dây kháng lực"></div>
   <div class="q"><h3>Nhóm cơ chính</h3><div class="row">${GG.map(([k,n])=>`<button class="chip sm" data-f="g" data-v="${k}" aria-pressed="${F.g===k}">${n}</button>`).join('')}</div></div>
   <div class="q"><h3>Dụng cụ</h3><div class="row">${EQ.map(([k,n])=>`<button class="chip sm" data-f="eq" data-v="${k}" aria-pressed="${F.eq===k}">${n}</button>`).join('')}</div></div>
@@ -693,10 +703,10 @@ function viewSettings(){const st=state(),L=S.look;
   <div class="card demo"><h2>Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
   <h3 style="font-size:15px;margin:14px 0 8px">Hoạt động của Chibi</h3><p class="muted" style="margin:0 0 8px">Bình thường bé tự chọn theo tâm trạng và thể trạng hôm nay. Bấm để xem trước:</p><div class="row">${Object.keys(ACTNAME).map(k=>`<button class="chip" data-act="${k}">${ACTNAME[k]}</button>`).join('')}</div></div>
   <div class="card"><details class="more"><summary>💝 Giới thiệu & Ghi công</summary><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
-  <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></details></div>
+  <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Everkinetic</b> – hình tư thế bài tập · Greg Priday & cộng đồng (github.com/everkinetic/data) · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.vi" target="_blank" rel="noopener">CC BY-SA 4.0</a> · chỉ nén dung lượng, không sửa nội dung hình</li><li><b>body-highlighter</b> – hình cơ thể tô nhóm cơ · GV79 & alahaxe · giấy phép MIT</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></details></div>
   <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.18-2';
+const APPVER='2026.11.18-3';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -714,7 +724,7 @@ function render(){const n=new Date(),h=n.getHours();
 
 /* ---------- Sheets ---------- */
 let F={};
-function openSheet(html){$('#sheet').innerHTML=html;$('#sheetbg').classList.add('on')}
+function openSheet(html){$('#sheet').innerHTML=html;$('#sheet').dataset.ex='';$('#sheet').scrollTop=0;$('#sheetbg').classList.add('on')}
 function closeSheet(){$('#sheetbg').classList.remove('on')}
 const chips=(name,arr,v)=>`<div class="row">${arr.map(([k,i,t])=>`<button class="chip" data-f="${name}" data-v="${k}" aria-pressed="${v===k}">${i} ${t}</button>`).join('')}</div>`;
 function checkinSheet(){const c=today().checkin||{};F={mood:c.mood,weather:c.weather,energy:c.energy||3,body:c.body||'ok',q:c.q||4};

@@ -23,6 +23,8 @@ Trợ lý cuộc sống nhỏ xinh cùng Bé Chibi — app cá nhân, chạy nga
 | `app.js` | Giao diện, Chibi, check-in, giấc ngủ, tab Việc + Pomodoro, nhắc nhở, Gym, sao lưu |
 | `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / workouts / snapshots) |
 | `exercises.js` | Thư viện 71 bài tập tiếng Việt (dữ liệu gốc free-exercise-db, Unlicense) |
+| `img/ex/` | Hình tư thế 46 bài (Everkinetic, CC BY-SA 4.0 – chỉ nén dung lượng) |
+| `vendor/body-highlighter.js` | body-highlighter 3.0.2 (MIT) – hình cơ thể tô nhóm cơ, đã kiểm tra không gọi mạng |
 | `vendor/confetti.js` | canvas-confetti 1.9.4 (ISC) – hiệu ứng hoa giấy, đã kiểm tra không gọi mạng |
 | `backup.js` | Tạo và đọc file sao lưu (.json, tùy chọn mã hóa) |
 | `sw.js` | Service worker: chạy offline |
