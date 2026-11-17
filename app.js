@@ -413,9 +413,9 @@ function viewSettings(){const st=state(),L=S.look;
   ${standalone()?'':`<div class="card"><h2>📲 Cài lên màn hình chính</h2>${installHow()}</div>`}
   <div class="card demo"><h2>Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
   <h3 style="font-size:15px;margin:14px 0 8px">Hoạt động của Chibi</h3><p class="muted" style="margin:0 0 8px">Bình thường bé tự chọn theo tâm trạng và thể trạng hôm nay. Bấm để xem trước:</p><div class="row">${Object.keys(ACTNAME).map(k=>`<button class="chip" data-act="${k}">${ACTNAME[k]}</button>`).join('')}</div></div>
-  <p class="muted" style="text-align:center;margin:18px 0 0">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p>`}
+  <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.17-2';
+const APPVER='2026.11.17-3';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -555,6 +555,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   else if(a==='doSnap'){t.disabled=true;const sn=await CozyDB.getSnapshot(t.dataset.k);if(sn){await replaceState(sn.state,'Trước khi quay lại bản chụp');closeSheet();render();say('Đã quay lại bản chụp 🕰️')}}
   else if(a==='install'){if(installEvt){installEvt.prompt();const r=await installEvt.userChoice;installEvt=null;render();if(r.outcome==='accepted')say('Yay, Cozy Life đã ở trên màn hình chính! 📲')}}
   else if(a==='hideInstall'){S.hideInstall=true;render()}
+  else if(a==='checkUpd'){if(!window.cozyCheckUpdate){say('Trình duyệt này không hỗ trợ tự cập nhật');return}t.disabled=true;t.textContent='Đang kiểm tra…';try{const f=await window.cozyCheckUpdate();say(f?'Có bản mới! Đang tải về, app sẽ tự mở lại ✨':'Bạn đang dùng bản mới nhất rồi 🌷',4000)}catch(e){say('Chưa kiểm tra được, có thể đang không có mạng')}t.disabled=false;t.textContent='🔄 Kiểm tra bản mới'}
   else if(a==='demoNight'){demoNight=!demoNight;render();wander();say(demoNight?'Gần đến giờ ngủ rồi, mình thay pijama nè 🌙':'Chào buổi sáng lại nè ☀️')}
   else if(a==='clearSample'){S.sleeps=S.sleeps.filter(x=>!x.sample);S.sample=false;render()}
   else if(a==='reset'){const q=$('#resetQ');if(q.classList.contains('hide')){q.classList.remove('hide');return}
@@ -660,7 +661,13 @@ setTimeout(()=>{const n=S.tasks.filter(t=>!t.done&&t.due&&t.due<=dk(new Date()))
 if('serviceWorker' in navigator&&location.protocol!=='file:'){
   const toast=$('#toast');let reloading=false;
   const showUpdate=w=>{toast.textContent='✨ Có bản Cozy Life mới. Chạm để cập nhật';toast.classList.remove('hide');toast.onclick=async()=>{toast.textContent='Đang cập nhật…';await flush();w.postMessage('skipWaiting')}};
-  navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloading)return;reloading=true;location.reload()});
+  const reloadNow=()=>{if(reloading)return;reloading=true;flush().finally(()=>location.reload())};
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    const ae=document.activeElement,busy=$('#sheetbg').classList.contains('on')||(ae&&['INPUT','TEXTAREA'].includes(ae.tagName))||focusing();
+    if(!busy||document.visibilityState==='hidden')return reloadNow();
+    toast.textContent='✨ Bản Cozy Life mới đã sẵn sàng. Chạm để tải lại';toast.classList.remove('hide');toast.onclick=reloadNow;
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')reloadNow()},{once:true})});
+  window.cozyCheckUpdate=async()=>{const r=await navigator.serviceWorker.getRegistration();if(!r)return false;await r.update();return !!(r.installing||r.waiting)};
   navigator.serviceWorker.register('sw.js').then(reg=>{
     const chk=()=>{if(reg.waiting&&navigator.serviceWorker.controller)showUpdate(reg.waiting)};
     const track=w=>{if(w)w.addEventListener('statechange',chk)};

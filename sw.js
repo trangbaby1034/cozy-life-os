@@ -1,6 +1,6 @@
 /* Cozy Life OS – service worker: cho app chạy offline.
    MỖI LẦN SỬA APP: tăng VERSION để điện thoại nhận bản mới. */
-const VERSION = 'cozy-2026.11.17-2';
+const VERSION = 'cozy-2026.11.17-3';
 const SHELL = [
   './', './index.html', './app.js', './db.js', './backup.js', './manifest.webmanifest',
   './fonts/fonts.css',
@@ -9,8 +9,9 @@ const SHELL = [
   './icons/icon-192.png', './icons/icon-512.png', './icons/apple-touch-icon.png', './icons/favicon-32.png'
 ];
 
+/* Bản mới tự kích hoạt ngay khi tải xong (iPhone hay "giữ chờ" bản mới nếu không làm vậy) */
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))));
+  e.waitUntil(caches.open(VERSION).then(c => c.addAll(SHELL.map(u => new Request(u, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
