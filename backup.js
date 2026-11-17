@@ -47,12 +47,13 @@
     if (!looksLikeState(state)) throw err('invalid');
     if (!Array.isArray(state.sleeps)) state.sleeps = [];
     if (!Array.isArray(state.tasks)) state.tasks = [];
+    if (!Array.isArray(state.workouts)) state.workouts = [];
     return { state, exportedAt, encrypted: !!(j && j.encrypted) };
   }
 
   function summary(state) {
     const days = Object.values(state.days || {});
-    return { days: days.length, sleeps: (state.sleeps || []).filter(s => !s.sample).length, candies: days.reduce((a, d) => a + ((d && d.candies) || []).length, 0), tasks: (state.tasks || []).length };
+    return { days: days.length, sleeps: (state.sleeps || []).filter(s => !s.sample).length, candies: days.reduce((a, d) => a + ((d && d.candies) || []).length, 0), tasks: (state.tasks || []).length, workouts: (state.workouts || []).filter(w => w.end).length };
   }
 
   self.CozyBackup = { build, parse, summary };

@@ -20,8 +20,10 @@ Trợ lý cuộc sống nhỏ xinh cùng Bé Chibi — app cá nhân, chạy nga
 | File | Vai trò |
 |---|---|
 | `index.html` | Khung trang + toàn bộ CSS |
-| `app.js` | Giao diện, Chibi, check-in, giấc ngủ, tab Việc + Pomodoro, sao lưu |
-| `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / snapshots) |
+| `app.js` | Giao diện, Chibi, check-in, giấc ngủ, tab Việc + Pomodoro, nhắc nhở, Gym, sao lưu |
+| `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / workouts / snapshots) |
+| `exercises.js` | Thư viện 71 bài tập tiếng Việt (dữ liệu gốc free-exercise-db, Unlicense) |
+| `vendor/confetti.js` | canvas-confetti 1.9.4 (ISC) – hiệu ứng hoa giấy, đã kiểm tra không gọi mạng |
 | `backup.js` | Tạo và đọc file sao lưu (.json, tùy chọn mã hóa) |
 | `sw.js` | Service worker: chạy offline |
 | `manifest.webmanifest`, `icons/` | Thông tin cài đặt PWA |

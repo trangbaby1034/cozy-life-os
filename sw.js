@@ -1,8 +1,8 @@
 /* Cozy Life OS – service worker: cho app chạy offline.
    MỖI LẦN SỬA APP: tăng VERSION để điện thoại nhận bản mới. */
-const VERSION = 'cozy-2026.11.18-1';
+const VERSION = 'cozy-2026.11.18-2';
 const SHELL = [
-  './', './index.html', './app.js', './db.js', './backup.js', './manifest.webmanifest',
+  './', './index.html', './app.js', './db.js', './backup.js', './exercises.js', './vendor/confetti.js', './manifest.webmanifest',
   './fonts/fonts.css',
   './fonts/quicksand-vietnamese-wght-normal.woff2', './fonts/quicksand-latin-ext-wght-normal.woff2', './fonts/quicksand-latin-wght-normal.woff2',
   './fonts/nunito-vietnamese-wght-normal.woff2', './fonts/nunito-latin-ext-wght-normal.woff2', './fonts/nunito-latin-wght-normal.woff2',

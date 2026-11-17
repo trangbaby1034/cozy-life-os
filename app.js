@@ -16,7 +16,7 @@ const PRAISE=['Hôm nay {n} giỏi lắm đó!','{n} ơi, uống ngụm nước 
 const HAIRC=['#2B2223','#4A3530','#6B4A3A','#C98B6B','#F4A7B9'];
 
 const LOOKDEF0={face:'auto',blush:'soft',lip:'#E8848D',lash:'natural',freckles:false,eyewear:'none',head:'none',ear:'stud',watch:true,bag:true};
-const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null});
+const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null,gym:{days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},workouts:[],customEx:[]});
 
 /* ---------- Đọc dữ liệu từ máy ---------- */
 let S=DEF();
@@ -34,6 +34,9 @@ function normalize(){
   if(!S.pomoSound)S.pomoSound='none';
   S.remindDefault=Object.assign({task:'cal',bed:'chibi'},S.remindDefault||{});
   if(!S.nudgeLog||typeof S.nudgeLog!=='object')S.nudgeLog={};
+  S.gym=Object.assign({days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},S.gym||{});
+  if(!Array.isArray(S.workouts))S.workouts=[];
+  if(!Array.isArray(S.customEx))S.customEx=[];
   if(!S.v2){const d=DEF();Object.assign(S,{hair:d.hair,hairColor:d.hairColor,fav:d.fav,autoSwap:true,v2:true})}
 }
 const loaded=await CozyDB.loadState();
@@ -42,7 +45,7 @@ normalize();
 let persistState='unknown';
 CozyDB.persist().then(r=>{persistState=r;if(tab==='set')render()});
 /* Bản chụp tự động: mỗi ngày giữ lại một bản của dữ liệu (7 ngày gần nhất) */
-const hasData=st=>Object.keys(st.days||{}).length||(st.sleeps||[]).length||(st.tasks||[]).length;
+const hasData=st=>Object.keys(st.days||{}).length||(st.sleeps||[]).length||(st.tasks||[]).length||(st.workouts||[]).length;
 if(loaded&&hasData(S)){CozyDB.listSnapshots().then(l=>{const k='auto-'+dk(new Date());if(!l.some(s=>s.key===k))CozyDB.putSnapshot(k,S,'Tự động')}).catch(()=>{})}
 
 let saveT;
@@ -60,6 +63,7 @@ function xmasLabel(){const d=daysToXmas(),n=new Date();if(n.getMonth()===11&&n.g
 function isNight(){if(demoNight)return true;const n=new Date(),[h,m]=S.bedTarget.split(':').map(Number);const mins=n.getHours()*60+n.getMinutes(),t=h*60+m;return mins>=t-30||mins<240}
 function state(){const d=today(),c=d.checkin||{};let mood=c.mood||'calm';if(c.body==='sick')mood='sick';
   let outfit=S.autoSwap&&(isNight()||c.body==='sick')?S.nightWear:S.autoSwap&&c.body==='sore'?'gym':S.fav;
+  if(activeWo()||(S.autoSwap&&outfit===S.fav&&S.gym.days.length&&planFor(new Date())))outfit='gym';
   return {mood,outfit}}
 
 const OUTFITS={
@@ -237,6 +241,9 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
   if(isNight()){h+=`<div class="card night-card"><h2>🌙 Giờ đi ngủ</h2>${d.evening?`<p class="muted" style="margin:0">Bạn đã chúc ngủ ngon lúc ${hm(new Date(S.pendingBed||Date.now()))}. Ngủ ngon nha!</p>`:`<p class="muted" style="margin:0 0 12px">Khép lại ngày hôm nay trong 30 giây rồi đi ngủ thôi.</p><button class="btn full" data-a="evening">😴 Bắt đầu</button>`}</div>`}
   const T3=d.top3.map(top3Slot);
   h+=`<div class="card"><h2>3 việc quan trọng nhất <small>${T3.filter(x=>x.d&&x.t).length}/3</small></h2>${T3.map((x,i)=>`<div class="task ${x.d?'done':''}"><input type="checkbox" data-t="${i}" ${x.d?'checked':''} aria-label="Xong việc ${i+1}">${x.tid?`<button class="t3link" data-topen="${x.tid}">⭐ ${esc(x.t)}</button>`:`<input type="text" data-tt="${i}" value="${esc(x.t)}" placeholder="Việc số ${i+1}…">`}</div>`).join('')}${!T3.some(x=>x.tid)&&S.tasks.some(t=>!t.done)?'<p class="muted" style="margin:6px 0 0">Mẹo: bấm ⭐ ở tab Việc để đưa việc lên đây.</p>':''}</div>`;
+  const awo=activeWo(),gk=S.gym.days.length&&planFor(new Date());
+  if(awo)h+=`<div class="card"><h2>🏋️ Đang tập dở: ${esc(awo.label)}</h2><button class="btn full" data-a="goGym">Tiếp tục buổi tập</button></div>`;
+  else if(gk&&!doneWos().some(w=>w.date===dk(new Date())))h+=`<div class="card"><h2>💪 Hôm nay là ngày tập <small>${S.gym.time}</small></h2><p class="muted" style="margin:0 0 10px">${SPLITS[gk][0]}: ${SPLITS[gk][1].map(gName).join(' · ')}</p><button class="btn ghost full" data-a="goGym">Xem gợi ý bài tập</button></div>`;
   const nb=S.tasks.filter(needsBell).sort(sortTasks);
   if(nb.length)h+=`<div class="card"><h2>🔔 Việc chưa có chuông <small>${nb.length}</small></h2><p class="muted" style="margin:0 0 4px">Mấy việc này chọn mức 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0,3).map(taskRow).join('')}</div>`;
   const dueL=S.tasks.filter(t=>!t.done&&t.due&&t.due<=dk(new Date())).sort(sortTasks);
@@ -248,7 +255,9 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
     ${d.candies.length?`<p class="muted" style="margin:8px 0 0">Hôm nay: ${d.candies.map(esc).join(' · ')}</p>`:''}</div></div></div>`;
   return h}
 
-function viewHealth(){const L=S.sleeps.slice(-7);
+let htab='gym';
+function viewHealth(){return `<div class="wtabs">${[['gym','🏋️ Gym & Vận động'],['sleep','😴 Giấc ngủ']].map(([k,n])=>`<button data-htab="${k}" aria-pressed="${htab===k}">${n}</button>`).join('')}</div>`+(htab==='gym'?viewGym():viewSleep())}
+function viewSleep(){const L=S.sleeps.slice(-7);
   if(!L.length)return `<div class="card"><h2>😴 Giấc ngủ</h2><p class="muted">Chưa có dữ liệu. Tối nay bấm "Đi ngủ" ở tab Hôm nay nhé!</p></div>`;
   const dur=x=>(new Date(x.wake)-new Date(x.bed))/36e5;const off=d=>{let h=d.getHours()+d.getMinutes()/60-20;if(h<0)h+=24;return h};
   const avg=L.reduce((a,x)=>a+dur(x),0)/L.length;const bo=L.map(x=>off(new Date(x.bed)));const ab=bo.reduce((a,b)=>a+b,0)/bo.length;
@@ -260,7 +269,7 @@ function viewHealth(){const L=S.sleeps.slice(-7);
     <div class="stat3"><div><b>${avg.toFixed(1)}h</b>TB mỗi đêm</div><div><b>${toClock(ab)}</b>Giờ ngủ TB</div><div><b>±${Math.round(spread)}′</b>Độ đều đặn</div></div>
     ${rows}<div class="axis"><span></span><span><i>20h</i><i>0h</i><i>4h</i><i>8h</i><i>12h</i></span><span></span></div>
     <p class="muted" style="margin:10px 0 0">Vạch đứt màu đào là giờ đi ngủ mục tiêu (${S.bedTarget}).${L.some(x=>x.sample)?' Một số đêm là dữ liệu mẫu, có thể xóa trong Cài đặt.':''}</p></div>
-    <div class="card"><h2>Sắp có ở bước sau</h2><p class="muted" style="margin:0">Hồ sơ sức khỏe, tủ thuốc, Gym & bản đồ nhóm cơ.</p></div>`}
+    <div class="card"><h2>Sắp có ở bước sau</h2><p class="muted" style="margin:0">Hồ sơ sức khỏe, tủ thuốc, nhật ký triệu chứng, nợ ngủ trong tuần.</p></div>`}
 
 
 /* ---------- 📋 Việc & Ước mơ ---------- */
@@ -398,18 +407,21 @@ function showNudge(n){nudgeCur=n;const el=$('#nudge');
   el.classList.remove('hide');if(n.say)say(n.say,5000);if(n.act&&!P.act)startAct(n.act)}
 function hideNudge(){nudgeCur=null;$('#nudge').classList.add('hide')}
 function nudgeAction(k){const n=nudgeCur;if(!n)return;hideNudge();
-  if(k==='open'){if(n.taskId){tab='tasks';render();taskSheet(n.taskId)}else if(n.tab){tab=n.tab;render();if(n.after)n.after()}}
+  if(k==='open'){if(n.taskId){tab='tasks';render();taskSheet(n.taskId)}else if(n.tab){tab=n.tab;if(n.after)n.after();render()}}
   else if(k==='snooze'){S.nudgeSnooze=Date.now()+60*6e4;say('Ok, 1 tiếng nữa mình nhắc lại nha',2500)}
-  else if(k==='stop'){if(n.taskId){const t=taskById(n.taskId);if(t){t.remind='none';bellChanged(t)}}if(n.kind==='bed')S.remindDefault.bed='none';say('Mình sẽ không nhắc việc này nữa 🤐',2500);render()}
+  else if(k==='stop'){if(n.taskId){const t=taskById(n.taskId);if(t){t.remind='none';bellChanged(t)}}if(n.kind==='bed')S.remindDefault.bed='none';if(n.kind==='gym')S.gym.remind='none';say('Mình sẽ không nhắc việc này nữa 🤐',2500);render()}
   save()}
 function checkNudges(){
-  if(nudgeCur||focusing()||$('#sheetbg').classList.contains('on')||$('#sleepcover').classList.contains('on'))return;
+  if(nudgeCur||dnd()||$('#sheetbg').classList.contains('on')||$('#sleepcover').classList.contains('on'))return;
   if(S.nudgeSnooze&&Date.now()<S.nudgeSnooze)return;
   const now=new Date(),td=dk(now),log=S.nudgeLog||(S.nudgeLog={});
   /* giờ đi ngủ: trước 30 phút */
   if(S.remindDefault.bed==='chibi'&&!today().evening&&log.bed!==td){const[h,m]=S.bedTarget.split(':').map(Number),b=new Date();b.setHours(h,m,0,0);const diff=(b-now)/6e4;
     if(diff<=30&&diff>-90){log.bed=td;save();return showNudge({kind:'bed',text:'🌙 Còn '+Math.max(0,Math.round(diff))+' phút nữa là đến giờ đi ngủ ('+S.bedTarget+'). Khép lại ngày hôm nay nhé?',say:'Sắp đến giờ ngủ rồi '+S.name+' ơi 🥱',act:'yawn',open:true,tab:'today',after:()=>eveningSheet(),stop:true})}}
   if(lazyDay())return; /* Ngày Lười Biếng: tạm im lặng */
+  const gk=S.gym.days.length&&planFor(now);
+  if(gk&&S.gym.remind==='chibi'&&log.gym!==td){const[h,m]=S.gym.time.split(':').map(Number),gt=new Date();gt.setHours(h,m,0,0);const diff=(gt-now)/6e4;
+    if(diff<=60&&diff>-60){log.gym=td;save();return showNudge({kind:'gym',text:'🏋️ Hôm nay là ngày tập <b>'+SPLITS[gk][0]+'</b> lúc '+S.gym.time+'. Xem gợi ý bài tập nhé?',say:'Sắp đến giờ tập rồi '+S.name+' 💪',act:'stretch',open:true,tab:'health',after:()=>{htab='gym';render()},stop:true})}}
   const L=S.tasks.filter(t=>!t.done&&lvl(t)==='chibi'&&t.due&&t.due<=td);
   /* sắp đến giờ hạn (30 phút) */
   for(const t of L){if(!t.dueTime||t.due!==td)continue;const d=(dueAt(t)-now)/6e4,key=t.due+' '+t.dueTime;
@@ -452,7 +464,7 @@ function pomoDone(quiet){const p=pomoState(),d=today(),was=p.mode;
   if(tab==='tasks')render();else save();
   if(quiet){if(was==='focus')say('Phiên tập trung đã xong lúc bạn vắng mặt ✅ Giỏi lắm!',5000);return}
   chime();if(navigator.vibrate)navigator.vibrate([200,100,200]);
-  if(was==='focus'){const t=p.taskId&&taskById(p.taskId);startAct('dance');say((t?'Xong một phiên cho "'+t.title+'"! ':'Xong một phiên rồi! ')+'Nghỉ '+(p.mode==='long'?'15':'5')+' phút nha ☕',6000)}
+  if(was==='focus'){const t=p.taskId&&taskById(p.taskId);startAct('dance');celebrate(1);say((t?'Xong một phiên cho "'+t.title+'"! ':'Xong một phiên rồi! ')+'Nghỉ '+(p.mode==='long'?'15':'5')+' phút nha ☕',6000)}
   else{wander();say('Hết giờ nghỉ rồi, mình quay lại nhé 💪',5000)}}
 function pomoGo(){const p=pomoState();
   if(p.endAt){p.left=pomoLeft();p.endAt=null;stopNoise();releaseWake();render();wander();say('Tạm dừng nha, nghỉ chút cũng được 🍵',3000);return}
@@ -477,6 +489,158 @@ async function keepAwake(){try{if('wakeLock' in navigator&&!wakeLk){wakeLk=await
 function releaseWake(){try{if(wakeLk)wakeLk.release()}catch(e){}wakeLk=null}
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState!=='visible')return;pomoTick();if(focusing()){keepAwake();if(noiseNode&&AC)AC.resume().catch(()=>{})}});
 
+/* ---------- 🏋️ Gym & Vận động ---------- */
+const EX0=self.CozyExercises||[];
+const GG=[['chest','Ngực'],['back','Lưng'],['shoulders','Vai'],['biceps','Tay trước'],['triceps','Tay sau'],['quads','Đùi trước'],['hams','Đùi sau & Mông'],['calves','Bắp chân'],['core','Bụng & Core'],['stretch','Giãn cơ']];
+const gName=g=>(GG.find(x=>x[0]===g)||['',g])[1];
+const EQ=[['gym','🏋️ Phòng gym đầy đủ'],['db','🔩 Tạ đơn tại nhà'],['body','🙆 Chỉ trọng lượng cơ thể']];
+const eqIcon=e=>e==='gym'?'🏋️':e==='db'?'🔩':'🙆';
+const GOALS=[['muscle','💪 Tăng cơ','8–12'],['fat','🔥 Giảm mỡ','12–15'],['endurance','🏃 Sức bền','15–20'],['fit','🌷 Giữ dáng','10–12']];
+const WD=['CN','T2','T3','T4','T5','T6','T7'],WDORDER=[1,2,3,4,5,6,0];
+const SPLITS={fullA:['Full Body A',['quads','chest','back','core']],fullB:['Full Body B',['hams','shoulders','back','triceps','biceps']],push:['Đẩy',['chest','shoulders','triceps']],pull:['Kéo',['back','biceps','core']],legs:['Chân',['quads','hams','calves']],upper:['Thân trên',['chest','back','shoulders','biceps','triceps']],lower:['Thân dưới',['quads','hams','calves','core']]};
+const allEx=()=>EX0.concat(S.customEx||[]);
+const exById=id=>allEx().find(e=>e.id===id);
+const eqOK=e=>S.gym.equip==='gym'||e.eq==='body'||(S.gym.equip==='db'&&e.eq==='db');
+function splitPlan(){const n=S.gym.days.length;const p=n<=1?['fullA']:n===2?['fullA','fullB']:n===3?['push','pull','legs']:n===4?['upper','lower','upper','lower']:n===5?['push','pull','legs','upper','lower']:['push','pull','legs','push','pull','legs','fullA'];
+  const days=WDORDER.filter(d=>S.gym.days.includes(d));return days.map((d,i)=>({wd:d,key:p[i]}))}
+function planFor(date){const wd=date.getDay(),x=splitPlan().find(p=>p.wd===wd);return x?x.key:null}
+const doneWos=()=>S.workouts.filter(w=>w.end).sort((a,b)=>b.start.localeCompare(a.start));
+const activeWo=()=>S.workouts.find(w=>!w.end)||null;
+function lastTrained(g){for(const w of doneWos()){if(w.items.some(it=>{const e=exById(it.ex);return e&&e.g===g&&it.sets.some(s=>s.done)}))return new Date(w.end||w.start)}return null}
+function recovery(g){const t=lastTrained(g);if(!t)return{s:'long',txt:'chưa tập'};const h=(Date.now()-t)/36e5;
+  if(h<48)return{s:'rest',txt:h<24?'vừa tập hôm nay':'tập hôm qua'};if(h>24*7)return{s:'long',txt:Math.floor(h/24)+' ngày chưa tập'};return{s:'ready',txt:'đã hồi phục'}}
+const REC={rest:['🍑','nên nghỉ'],ready:['🍵','sẵn sàng'],long:['💜','ưu tiên']};
+function lastSetsOf(exId){for(const w of doneWos()){const it=w.items.find(i=>i.ex===exId&&i.sets.some(s=>s.done));if(it)return it.sets.filter(s=>s.done)}return null}
+function prOf(exId,excludeId){let m=0;S.workouts.forEach(w=>{if(!w.end||w.id===excludeId)return;w.items.forEach(it=>{if(it.ex===exId)it.sets.forEach(s=>{if(s.done&&+s.kg>m)m=+s.kg})})});return m}
+function pickEx(g,n){const L=allEx().filter(e=>e.g===g&&eqOK(e));const used=new Set();doneWos().slice(0,20).forEach(w=>w.items.forEach(it=>{const e=exById(it.ex);if(e&&e.g===g&&eqOK(e))used.add(e.id)}));
+  const pref=L.filter(e=>used.has(e.id)).concat(L.filter(e=>!used.has(e.id)));return pref.slice(0,n)}
+/* Gợi ý buổi tập hôm nay */
+function suggest(){const now=new Date(),key=planFor(now),c=today().checkin||{},goal=GOALS.find(x=>x[0]===S.gym.goal)||GOALS[0];
+  const last=S.sleeps[S.sleeps.length-1],slept=last&&!last.sample&&(Date.now()-new Date(last.wake))<18*36e5?(new Date(last.wake)-new Date(last.bed))/36e5:null;
+  const notes=[];let mode='normal';
+  if(c.body==='sick'){mode='rest';notes.push('🤒 Hôm nay bạn đang ốm: nghỉ ngơi là chính. Nếu thấy ổn, đi bộ nhẹ 15–20 phút hoặc giãn cơ 10 phút.')}
+  else if(c.energy&&c.energy<=2){mode='light';notes.push('🔋 Năng lượng thấp: buổi nhẹ hơn (bớt 1 set), hoặc đổi sang giãn cơ 10 phút.')}
+  if(mode!=='rest'&&slept!==null&&slept<6){mode='light';notes.push('😴 Đêm qua ngủ khoảng '+slept.toFixed(1)+' tiếng: tập nhẹ thôi nhé.')}
+  if(mode!=='rest'&&c.body==='sore'){if(mode==='normal')mode='light';notes.push('🦵 Đang đau nhức cơ: tránh nhóm cơ đang đau, thêm giãn cơ cuối buổi.')}
+  if(mode!=='rest'&&c.body==='tired'&&mode==='normal'){mode='light';notes.push('🫠 Hơi mệt: giảm tạ một chút cũng được.')}
+  let groups=[],title,skipped=[];
+  if(mode==='rest'){groups=['stretch'];title='Nghỉ / giãn cơ nhẹ'}
+  else if(key){const [lb,gs]=SPLITS[key];title=lb;groups=gs.filter(g=>{const r=recovery(g);if(r.s==='rest'){skipped.push(g);return false}return true});
+    if(skipped.length)notes.push('🍑 '+skipped.map(gName).join(', ')+' vừa tập trong 48 giờ qua nên để nghỉ.');
+    if(!groups.length){groups=GG.slice(0,9).map(x=>x[0]).filter(g=>recovery(g).s==='long').slice(0,3);notes.push('💜 Gợi ý thay bằng nhóm lâu chưa tập.')}}
+  else{title=null;groups=GG.slice(0,9).map(x=>x[0]).filter(g=>recovery(g).s!=='rest').sort((a,b)=>({long:0,ready:1}[recovery(a).s]-{long:0,ready:1}[recovery(b).s])).slice(0,3)}
+  if(c.body==='sore'&&mode!=='rest'&&!groups.includes('stretch'))groups=groups.concat('stretch');
+  const sets=mode==='light'?2:3,per=groups.filter(g=>g!=='stretch').length<=3?2:1;
+  const items=[];groups.forEach(g=>pickEx(g,g==='stretch'?3:g==='core'?1:per).forEach(e=>items.push({ex:e.id,sets:g==='stretch'?1:sets,reps:g==='stretch'?'30 giây':goal[2]})));
+  return{key,title,mode,notes,groups,items,training:!!key}}
+
+let restEnd=0,gymView='main';
+function startWorkout(sg,groupsOverride){if(activeWo())return;const goal=GOALS.find(x=>x[0]===S.gym.goal)||GOALS[0];
+  let items=sg.items;if(groupsOverride){items=[];groupsOverride.forEach(g=>pickEx(g,g==='stretch'?3:2).forEach(e=>items.push({ex:e.id,sets:sg.mode==='light'?2:3,reps:g==='stretch'?'30 giây':goal[2]})))}
+  const w={id:uid(),date:dk(new Date()),start:new Date().toISOString(),end:null,label:groupsOverride?groupsOverride.map(gName).join(' · '):(sg.title||sg.groups.map(gName).join(' · ')),
+    items:items.map(it=>{const prev=lastSetsOf(it.ex),n=it.sets,dr=parseInt(it.reps)||10;return{ex:it.ex,target:it.reps,sets:Array.from({length:n},(_,i)=>{const p=prev&&prev[Math.min(i,prev.length-1)];return{r:p?p.r:(exById(it.ex)||{}).g==='stretch'?30:dr,kg:p?p.kg:'',f:'',done:false}})}})};
+  S.workouts.push(w);hideNudge();render();wander();scrollTo({top:0,behavior:'smooth'});say('Khởi động nhẹ 5 phút rồi mình bắt đầu nha 💪',4000)}
+function finishWorkout(){const w=activeWo();if(!w)return;
+  const doneSets=w.items.reduce((a,it)=>a+it.sets.filter(s=>s.done).length,0);
+  if(!doneSets){openSheet(`<h2>Chưa có set nào xong</h2><p class="muted">Bạn chưa đánh dấu ✓ set nào. Hủy buổi tập này nhé?</p><div class="row" style="margin-top:12px"><button class="btn" data-a="woCancelOk">Hủy buổi tập</button><button class="btn ghost" data-a="closeSheet">Tập tiếp</button></div>`);return}
+  w.items=w.items.filter(it=>it.sets.some(s=>s.done)).map(it=>(it.sets=it.sets.filter(s=>s.done),it));w.end=new Date().toISOString();restEnd=0;
+  const prs=[];w.items.forEach(it=>{const mx=Math.max(0,...it.sets.map(s=>+s.kg||0)),old=prOf(it.ex,w.id);if(mx>0&&mx>old&&old>0)prs.push([it.ex,mx,old])});w.prs=prs.map(p=>p[0]);
+  const vol=w.items.reduce((a,it)=>a+it.sets.reduce((b,s)=>b+(+s.r||0)*(+s.kg||0),0),0),mins=Math.round((new Date(w.end)-new Date(w.start))/6e4);
+  render();wander();celebrate(prs.length?2:1);startAct('dance');
+  say(prs.length?'Kỷ lục mới! '+S.name+' mạnh quá trời 🏆':'Xong buổi tập rồi! Giỏi lắm '+S.name+' 🎉',6000);
+  openSheet(`<h2>🎉 Hoàn thành buổi tập!</h2><div class="stat3" style="margin-top:12px"><div><b>${mins}′</b>Thời gian</div><div><b>${doneSets}</b>Set</div><div><b>${vol>=1000?(vol/1000).toFixed(1)+'t':vol+'kg'}</b>Tổng khối lượng</div></div>
+  ${prs.length?`<div class="okline"><span>🏆</span><span><b>Kỷ lục mới:</b> ${prs.map(([id,m,o])=>esc((exById(id)||{}).n||id)+' '+m+'kg (trước '+o+'kg)').join(', ')}</span></div>`:''}
+  ${w.items.map(it=>`<p style="margin:6px 0"><b>${esc((exById(it.ex)||{}).n||it.ex)}</b><br><span class="muted">${it.sets.map(s=>s.r+(s.kg?'×'+s.kg+'kg':'')).join(' · ')}</span></p>`).join('')}
+  <button class="btn full" style="margin-top:14px" data-a="closeSheet">Tuyệt vời ✨</button>`)}
+function celebrate(power){try{if(!window.confetti||reduce)return;const o={disableForReducedMotion:true,zIndex:40,colors:['#FF9E9E','#A8E6CF','#DED2F9','#FFE9A8','#FFC8A8']};confetti(Object.assign({particleCount:90*power,spread:80,origin:{y:.7}},o));if(power>1)setTimeout(()=>confetti(Object.assign({particleCount:60,angle:60,spread:60,origin:{x:0,y:.8}},o)),250),setTimeout(()=>confetti(Object.assign({particleCount:60,angle:120,spread:60,origin:{x:1,y:.8}},o)),400)}catch(e){}}
+function restTick(){if(!restEnd)return;const left=Math.max(0,Math.ceil((restEnd-Date.now())/1000)),el=$('#restT');if(el)el.textContent=mmss(left);
+  if(left<=0){restEnd=0;chime();if(navigator.vibrate)navigator.vibrate(200);say('Hết giờ nghỉ, set tiếp nào! 💪',3000);if(tab==='health')render()}}
+function woCard(w){const mins=Math.round((Date.now()-new Date(w.start))/6e4);
+  return `<div class="card wo"><h2>🏋️ Đang tập: ${esc(w.label)} <small>${mins} phút</small></h2>
+  ${restEnd?`<div class="okline restbar"><span>⏱️</span><span>Nghỉ giữa set: <b id="restT">${mmss(Math.max(0,Math.ceil((restEnd-Date.now())/1000)))}</b></span><button class="chip sm" data-a="restPlus">+30s</button><button class="chip sm" data-a="restSkip">Bỏ qua</button></div>`:''}
+  ${w.items.map((it,ii)=>{const e=exById(it.ex)||{n:it.ex,g:''},prev=lastSetsOf(it.ex),pr=prOf(it.ex,w.id),st=e.g==='stretch';
+   return `<div class="woex"><div class="woh"><button class="tmain" data-exinfo="${esc(it.ex)}"><span class="tt">${esc(e.n)}</span><span class="tmeta"><i>${gName(e.g)}</i><i>Mục tiêu ${esc(it.target||'')}${st?'':' lần'}</i>${prev?`<i>Lần trước: ${prev.map(s=>s.r+(s.kg?'×'+s.kg:'')).join(', ')}</i>`:''}${pr?`<i>🏆 ${pr}kg</i>`:''}</span></button><button class="xbtn" data-wodel="${ii}" aria-label="Bỏ bài này">✕</button></div>
+   ${it.sets.map((s,si)=>`<div class="setrow ${s.done?'done':''}"><span class="sn">${si+1}</span><input class="inp sm" type="number" inputmode="numeric" min="0" max="999" data-wr="${ii}:${si}" value="${s.r}" aria-label="Số ${st?'giây':'lần'}"><span class="u">${st?'giây':'lần'}</span>${st?'':`<input class="inp sm" type="number" inputmode="decimal" min="0" max="999" step="0.5" data-wk="${ii}:${si}" value="${s.kg}" placeholder="–" aria-label="Kg"><span class="u">kg</span>`}
+   ${st?'':`<span class="feel">${[['e','Dễ'],['m','Vừa'],['h','Nặng']].map(([k,n])=>`<button class="fchip" data-wf="${ii}:${si}:${k}" aria-pressed="${s.f===k}">${n}</button>`).join('')}</span>`}<button class="sdone" data-wd="${ii}:${si}" aria-pressed="${s.done}" aria-label="Xong set ${si+1}">✓</button></div>`).join('')}
+   <button class="chip sm" data-woadd="${ii}" style="margin-top:6px">＋ Thêm set</button></div>`}).join('')}
+  <div class="row" style="margin-top:14px"><button class="btn ghost" data-a="exPick">＋ Thêm bài</button></div>
+  <div class="row" style="margin-top:10px"><button class="btn" data-a="woFinish">✅ Hoàn thành buổi tập</button><button class="btn ghost danger" data-a="woCancel">Hủy buổi</button></div></div>`}
+function gymSetupCard(first){const g=S.gym,plan=splitPlan();
+  return `<div class="card"><h2>📅 Lịch tập ${first?'':'<small>'+g.days.length+' buổi/tuần</small>'}</h2>${first?'<p class="muted" style="margin:0 0 6px">Chọn ngày bạn muốn tập, app sẽ tự chia nhóm cơ cho từng buổi.</p>':''}
+  <div class="q" style="margin-top:6px"><h3>Ngày tập</h3><div class="row">${WDORDER.map(d=>`<button class="chip sm wdchip" data-gday="${d}" aria-pressed="${g.days.includes(d)}">${WD[d]}</button>`).join('')}</div></div>
+  <div class="q"><h3>Giờ tập</h3><input class="inp" type="time" id="gTime" value="${g.time}" style="max-width:160px"></div>
+  <div class="q"><h3>Mục tiêu</h3><div class="row">${GOALS.map(([k,n])=>`<button class="chip sm" data-ggoal="${k}" aria-pressed="${g.goal===k}">${n}</button>`).join('')}</div></div>
+  <div class="q"><h3>Dụng cụ có sẵn</h3><div class="row">${EQ.map(([k,n])=>`<button class="chip sm" data-geq="${k}" aria-pressed="${g.equip===k}">${n}</button>`).join('')}</div></div>
+  <div class="q"><h3>Nghỉ giữa set</h3><div class="row">${[60,90,120].map(n=>`<button class="chip sm" data-grest="${n}" aria-pressed="${g.rest===n}">${n} giây</button>`).join('')}</div></div>
+  ${plan.length?`<div class="q"><h3>Lịch chia nhóm cơ</h3>${plan.map(p=>`<div class="planrow"><b>${WD[p.wd]}</b><span>${SPLITS[p.key][0]}</span><span class="muted">${SPLITS[p.key][1].map(gName).join(' · ')}</span></div>`).join('')}<p class="muted" style="margin:6px 0 0">Mỗi nhóm cơ nên tập khoảng 2 lần/tuần, nghỉ ít nhất 48 giờ trước khi tập lại nhóm cơ lớn.</p></div>
+  <div class="q"><h3>🔔 Nhắc lịch tập</h3>${gymRemindHtml()}</div>`:''}</div>`}
+function gymBellAt(){const[h,m]=S.gym.time.split(':').map(Number);const d=new Date();d.setHours(h,m,0,0);d.setMinutes(d.getMinutes()-30);return hm(d)}
+function gymRemindHtml(){const g=S.gym,L=g.remind;let h=`<div class="row">${LV.map(([k,i,n])=>`<button class="chip sm" data-grem="${k}" aria-pressed="${L===k}">${i} ${n}</button>`).join('')}</div>`;
+  const days=WDORDER.filter(d=>g.days.includes(d)).map(d=>WD[d]).join(', ');
+  if(L==='none')return h;
+  if(L==='chibi')return h+`<p class="muted" style="margin:8px 0 0">Ngày tập, khi bạn mở app trước giờ tập, Chibi sẽ nhắc.</p>`;
+  h+=`<div class="okline ${g.bell?'':'warn'}" style="margin:10px 0 0"><span>${g.bell?'🔔':'🔕'}</span><span>${g.bell?(L==='cal'?'Đã thêm vào Lịch':'Đã đặt báo thức')+': ':'Chưa có chuông: '}${days} lúc ${gymBellAt()} (trước giờ tập 30 phút)</span></div>`;
+  if(g.oldBell)h+=`<p class="muted" style="margin:6px 0 0">⚠️ Lịch tập vừa đổi. Nhớ xóa ${L==='alarm'?'báo thức':'sự kiện'} cũ trên iPhone rồi đặt lại nhé.</p>`;
+  h+=g.bell?`<div class="row" style="margin-top:8px"><button class="chip sm" data-gbell="set">${L==='cal'?'📅 Thêm lại vào Lịch':'⏰ Xem lại cách đặt'}</button><button class="chip sm" data-gbell="unset">Đánh dấu chưa có chuông</button></div>`
+   :`<div class="row" style="margin-top:8px"><button class="btn" data-gbell="set">✅ Đặt giúp tôi</button><button class="btn ghost" data-gbell="done">👌 Tôi đặt rồi</button></div>`;
+  return h}
+const ICSDAY=['SU','MO','TU','WE','TH','FR','SA'];
+function gymIcs(){const g=S.gym,[h,m]=g.time.split(':').map(Number),s=new Date();s.setHours(h,m,0,0);
+  for(let i=0;i<8;i++){if(g.days.includes(s.getDay())&&s>new Date())break;s.setDate(s.getDate()+1);s.setHours(h,m,0,0)}
+  return buildIcs({uid:'cozy-gym',title:'🏋️ Giờ tập – Cozy Life',start:s,durMin:60,rrule:'FREQ=WEEKLY;BYDAY='+WDORDER.filter(d=>g.days.includes(d)).map(d=>ICSDAY[d]).join(','),trigger:'-PT30M',desc:'Mở Cozy Life xem gợi ý buổi tập hôm nay nhé 💪'})}
+function gymBellChanged(){if(S.gym.bell){S.gym.bell=false;S.gym.oldBell=true}}
+function viewGym(){const g=S.gym;if(!g.days.length&&!activeWo())return gymSetupCard(true)+gymHistoryCard()+`<div class="card"><h2>📚 Thư viện bài tập</h2><p class="muted" style="margin:0 0 10px">${allEx().length} bài, có mô tả và lưu ý tư thế tiếng Việt.</p><button class="btn ghost" data-a="exLib">Mở thư viện</button></div>`;
+  const w=activeWo();let h='';
+  if(w)h+=woCard(w);
+  else{const sg=suggest(),now=new Date();
+    h+=`<div class="card"><h2>${sg.training?'💪 Hôm nay: '+esc(sg.title):sg.mode==='rest'?'🌿 '+esc(sg.title):'🌿 Hôm nay là ngày nghỉ'} <small>${sg.training?g.time:''}</small></h2>
+    ${sg.notes.map(n=>`<div class="tip">${n}</div>`).join('')}
+    ${!sg.training&&sg.mode!=='rest'?`<p class="muted" style="margin:8px 0">Muốn vận động thêm? Gợi ý nhóm cơ đã hồi phục / lâu chưa tập:</p>`:''}
+    <div class="recrow">${(sg.groups.length?sg.groups:[]).map(x=>{const r=x==='stretch'?{s:'ready',txt:'phục hồi'}:recovery(x);return `<span class="rec ${r.s}">${REC[r.s][0]} ${gName(x)} <i>${r.txt}</i></span>`}).join('')}</div>
+    ${sg.items.length?`<div class="sglist">${sg.items.map(it=>{const e=exById(it.ex),p=lastSetsOf(it.ex);return `<button class="sgrow" data-exinfo="${esc(it.ex)}"><span><b>${esc(e.n)}</b><i>${gName(e.g)} · ${eqIcon(e.eq)}</i></span><span class="muted">${it.sets}×${esc(it.reps)}${p&&p[0].kg?' · '+p[0].kg+'kg':''}</span></button>`}).join('')}</div>`:'<p class="muted">Chưa có bài phù hợp, thử đổi dụng cụ trong Lịch tập.</p>'}
+    <div class="row" style="margin-top:12px"><button class="btn" data-a="woStart">▶️ ${sg.mode==='rest'?'Bắt đầu giãn cơ':'Bắt đầu buổi tập'}</button><button class="btn ghost" data-a="woPickGroups">Tập nhóm khác</button></div>
+    <p class="muted" style="margin:10px 0 0">Gợi ý chỉ để tham khảo, bạn luôn có thể tự chọn lại.</p></div>`;
+    h+=`<div class="card"><h2>🧭 Hồi phục từng nhóm cơ</h2><div class="recrow">${GG.slice(0,9).map(([k])=>{const r=recovery(k);return `<span class="rec ${r.s}">${REC[r.s][0]} ${gName(k)} <i>${r.txt}</i></span>`}).join('')}</div><p class="muted" style="margin:8px 0 0">🍑 vừa tập (&lt; 48 giờ) – nên nghỉ · 🍵 đã hồi phục · 💜 hơn 7 ngày chưa tập – ưu tiên</p></div>`}
+  h+=gymHistoryCard();
+  h+=`<div class="card"><h2>📚 Thư viện bài tập <small>${allEx().length} bài</small></h2><div class="row"><button class="btn ghost" data-a="exLib">Mở thư viện</button><button class="btn ghost" data-a="exNew">＋ Bài tự tạo</button></div></div>`;
+  h+=gymSetupCard(false);return h}
+function gymHistoryCard(){const L=doneWos();if(!L.length)return '';
+  const wk=new Date();wk.setDate(wk.getDate()-((wk.getDay()+6)%7));wk.setHours(0,0,0,0);const nWeek=L.filter(w=>new Date(w.start)>=wk).length;
+  return `<div class="card"><h2>📈 Đã tập <small>Tuần này: ${nWeek}/${S.gym.days.length||'–'} buổi</small></h2>${L.slice(0,6).map(w=>{const d=new Date(w.start),n=w.items.reduce((a,it)=>a+it.sets.length,0),mins=Math.round((new Date(w.end)-d)/6e4);
+   return `<button class="sgrow" data-wohist="${w.id}"><span><b>${WD[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth()+1)} · ${esc(w.label)}</b><i>${n} set · ${mins} phút${(w.prs||[]).length?' · 🏆 kỷ lục':''}</i></span><span class="muted">›</span></button>`}).join('')}</div>`}
+/* Thư viện bài tập */
+let lib={g:'all',q:'',mine:true,pick:false};
+const fold=s=>String(s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/đ/g,'d');
+function libListHtml(){const q=fold(lib.q.trim());
+  const L=allEx().filter(e=>(lib.g==='all'||e.g===lib.g)&&(!lib.mine||eqOK(e))&&(!q||fold(e.n+' '+e.en+' '+gName(e.g)).includes(q)));
+  return L.map(e=>`<button class="sgrow" data-${lib.pick?'expick':'exinfo'}="${esc(e.id)}"><span><b>${esc(e.n)}</b><i>${gName(e.g)} · ${eqIcon(e.eq)}${e.custom?' · tự tạo':''}</i></span><span class="muted">${lib.pick?'＋':'›'}</span></button>`).join('')||'<p class="muted">Không tìm thấy bài nào.</p>'}
+function libSheet(pick){if(pick!==undefined)lib.pick=pick;
+  openSheet(`<h2>📚 ${lib.pick?'Chọn bài để thêm':'Thư viện bài tập'}</h2>
+  <input class="inp" id="libQ" placeholder="Tìm bài… (vd: squat, vai)" value="${esc(lib.q)}" style="margin-top:10px" autocomplete="off">
+  <div class="wtabs" style="margin-top:10px">${[['all','Tất cả']].concat(GG).map(([k,n])=>`<button data-libg="${k}" aria-pressed="${lib.g===k}">${n}</button>`).join('')}</div>
+  <div class="row"><button class="chip sm" data-a="libMine" aria-pressed="${lib.mine}">Chỉ bài hợp dụng cụ của tôi</button></div>
+  <div id="libList" style="margin-top:8px">${libListHtml()}</div>
+  ${lib.pick?'':'<button class="btn ghost" style="margin-top:12px" data-a="exNew">＋ Thêm bài tự tạo</button>'}`)}
+function exInfo(id){const e=exById(id);if(!e)return;const pr=prOf(id),p=lastSetsOf(id),w=activeWo();
+  openSheet(`<h2>${esc(e.n)}</h2><p class="muted" style="margin:2px 0 10px">${esc(e.en||'')} · ${gName(e.g)} · ${eqIcon(e.eq)} ${(EQ.find(x=>x[0]===e.eq)||['',''])[1].replace(/^\S+ /,'')}</p>
+  ${e.d?`<p>${esc(e.d)}</p>`:''}${e.tip?`<div class="tip">💡 ${esc(e.tip)}</div>`:''}
+  ${e.sec&&e.sec.length?`<p class="muted" style="margin:10px 0 0">Nhóm cơ phụ: ${e.sec.map(gName).join(', ')}</p>`:''}
+  ${pr||p?`<div class="okline" style="margin-top:10px"><span>📈</span><span>${pr?'Kỷ lục: <b>'+pr+'kg</b>. ':''}${p?'Lần trước: '+p.map(s=>s.r+(s.kg?'×'+s.kg+'kg':'')).join(', '):''}</span></div>`:''}
+  <div class="row" style="margin-top:14px">${w&&!w.items.some(it=>it.ex===id)?`<button class="btn" data-expick="${esc(id)}">＋ Thêm vào buổi tập</button>`:''}${e.custom?`<button class="btn ghost danger" data-exdel="${esc(id)}">Xóa bài tự tạo</button>`:''}<button class="btn ghost" data-a="closeSheet">Đóng</button></div>`)}
+function exNewSheet(){F={g:'chest',eq:S.gym.equip==='gym'?'gym':S.gym.equip};openSheet(`<h2>＋ Bài tự tạo</h2><div class="q"><input class="inp" id="exN" maxlength="60" placeholder="Tên bài, vd: Kéo dây kháng lực"></div>
+  <div class="q"><h3>Nhóm cơ chính</h3><div class="row">${GG.map(([k,n])=>`<button class="chip sm" data-f="g" data-v="${k}" aria-pressed="${F.g===k}">${n}</button>`).join('')}</div></div>
+  <div class="q"><h3>Dụng cụ</h3><div class="row">${EQ.map(([k,n])=>`<button class="chip sm" data-f="eq" data-v="${k}" aria-pressed="${F.eq===k}">${n}</button>`).join('')}</div></div>
+  <div class="q"><h3>Ghi chú tư thế (không bắt buộc)</h3><input class="inp" id="exTip" maxlength="160"></div>
+  <button class="btn full" style="margin-top:16px" data-a="exSave">Lưu bài</button>`)}
+function groupPickSheet(){F={gs:[]};openSheet(`<h2>Chọn nhóm cơ hôm nay</h2><p class="muted" style="margin:0 0 8px">Chọn 1–4 nhóm, app sẽ chọn bài phù hợp dụng cụ của bạn.</p>
+  <div class="row">${GG.map(([k,n])=>{const r=k==='stretch'?null:recovery(k);return `<button class="chip sm" data-gpick="${k}" aria-pressed="false">${r?REC[r.s][0]+' ':''}${n}</button>`}).join('')}</div>
+  <button class="btn full" style="margin-top:16px" data-a="woStartPicked">▶️ Bắt đầu</button>`)}
+function woHistSheet(id){const w=S.workouts.find(x=>x.id===id);if(!w)return;const d=new Date(w.start);
+  openSheet(`<h2>${WD[d.getDay()]} ${pad(d.getDate())}/${pad(d.getMonth()+1)} · ${esc(w.label)}</h2><p class="muted">${hm(d)}–${hm(new Date(w.end))}</p>
+  ${w.items.map(it=>`<p style="margin:8px 0"><b>${esc((exById(it.ex)||{}).n||it.ex)}</b>${(w.prs||[]).includes(it.ex)?' 🏆':''}<br><span class="muted">${it.sets.map(s=>s.r+(s.kg?'×'+s.kg+'kg':'')+(s.f?' ('+{e:'dễ',m:'vừa',h:'nặng'}[s.f]+')':'')).join(' · ')}</span></p>`).join('')}
+  <div class="row" style="margin-top:14px"><button class="btn ghost" data-a="closeSheet">Đóng</button><button class="btn ghost danger" data-wohdel="${w.id}">Xóa buổi này</button></div>`)}
+const dnd=()=>focusing()||!!activeWo();
+
 function viewSoon(t){return `<div class="card"><h2>${t}</h2><p class="muted" style="margin:0">Phần này sẽ có ở bước tiếp theo.</p></div>`}
 
 let wtab='outfit',snaps=null;
@@ -487,7 +651,7 @@ function dataCard(){
   const sum=CozyBackup.summary(S);
   if(snaps===null){snaps=[];CozyDB.listSnapshots().then(l=>{snaps=l;if(tab==='set')render()}).catch(()=>{})}
   return `<div class="card" id="datacard"><h2>💾 Dữ liệu & sao lưu</h2>
-  <p class="muted" style="margin:0 0 10px">Mọi thứ nằm ngay trên máy này, không gửi lên mạng. Hiện có ${sum.tasks} việc, ${sum.days} ngày nhật ký, ${sum.sleeps} đêm ngủ, ${sum.candies} viên kẹo.</p>
+  <p class="muted" style="margin:0 0 10px">Mọi thứ nằm ngay trên máy này, không gửi lên mạng. Hiện có ${sum.tasks} việc, ${sum.workouts} buổi tập, ${sum.days} ngày nhật ký, ${sum.sleeps} đêm ngủ, ${sum.candies} viên kẹo.</p>
   <div class="okline ${persistState==='yes'?'':'warn'}"><span>${pst[0]}</span><span>${pst[1]}</span></div>
   <div class="okline ${backupDue()?'warn':''}"><span>📤</span><span>Lần sao lưu cuối: <b>${S.lastBackup?fmtDate(S.lastBackup)+' ('+(daysSince(S.lastBackup)?daysSince(S.lastBackup)+' ngày trước':'hôm nay')+')':'chưa có'}</b></span></div>
   <div class="q" style="margin-top:4px"><h3>Mật khẩu cho file sao lưu <span class="muted">(không bắt buộc)</span></h3><input class="inp" type="password" id="bkpw" autocomplete="new-password" placeholder="Để trống nếu không cần"><p class="muted" style="margin:6px 0 0">Đặt mật khẩu thì người khác mở file cũng không đọc được nhật ký. Nhưng <b>quên mật khẩu là không khôi phục được</b>, nên hãy ghi lại ở nơi an toàn.</p></div>
@@ -528,9 +692,11 @@ function viewSettings(){const st=state(),L=S.look;
   ${standalone()?'':`<div class="card"><h2>📲 Cài lên màn hình chính</h2>${installHow()}</div>`}
   <div class="card demo"><h2>Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
   <h3 style="font-size:15px;margin:14px 0 8px">Hoạt động của Chibi</h3><p class="muted" style="margin:0 0 8px">Bình thường bé tự chọn theo tâm trạng và thể trạng hôm nay. Bấm để xem trước:</p><div class="row">${Object.keys(ACTNAME).map(k=>`<button class="chip" data-act="${k}">${ACTNAME[k]}</button>`).join('')}</div></div>
+  <div class="card"><details class="more"><summary>💝 Giới thiệu & Ghi công</summary><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
+  <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></details></div>
   <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.18-1';
+const APPVER='2026.11.18-2';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -606,8 +772,8 @@ async function readImport(text,pw){
 function pwSheet(bad){openSheet(`<h2>🔐 File có mật khẩu</h2><p class="muted" style="margin:0 0 10px">Nhập mật khẩu bạn đã đặt khi sao lưu.</p><input class="inp" type="password" id="impw" autocomplete="current-password">${bad?'<p class="err">Mật khẩu chưa đúng, thử lại nhé.</p>':''}<div class="row" style="margin-top:16px"><button class="btn" data-a="impw">Mở file</button><button class="btn ghost" data-a="closeSheet">Hủy</button></div>`);setTimeout(()=>$('#impw')&&$('#impw').focus(),50)}
 function confirmImportSheet(r){const a=CozyBackup.summary(r.state),b=CozyBackup.summary(S);
   openSheet(`<h2>📥 Khôi phục dữ liệu?</h2>
-  <div class="okline"><span>📄</span><span>File sao lưu${r.exportedAt?' ngày <b>'+fmtDate(r.exportedAt)+'</b>':''}: ${a.tasks} việc, ${a.days} ngày, ${a.sleeps} đêm ngủ, ${a.candies} viên kẹo.</span></div>
-  <div class="okline warn"><span>📱</span><span>Dữ liệu đang có trên máy: ${b.tasks} việc, ${b.days} ngày, ${b.sleeps} đêm ngủ, ${b.candies} viên kẹo. Sẽ được <b>thay hết</b> bằng file.</span></div>
+  <div class="okline"><span>📄</span><span>File sao lưu${r.exportedAt?' ngày <b>'+fmtDate(r.exportedAt)+'</b>':''}: ${a.tasks} việc, ${a.workouts} buổi tập, ${a.days} ngày, ${a.sleeps} đêm ngủ, ${a.candies} viên kẹo.</span></div>
+  <div class="okline warn"><span>📱</span><span>Dữ liệu đang có trên máy: ${b.tasks} việc, ${b.workouts} buổi tập, ${b.days} ngày, ${b.sleeps} đêm ngủ, ${b.candies} viên kẹo. Sẽ được <b>thay hết</b> bằng file.</span></div>
   <p class="muted">Yên tâm: app chụp lại dữ liệu hiện tại trước, nếu cần có thể "Quay lại" trong mục Bản chụp tự động.</p>
   <div class="row" style="margin-top:12px"><button class="btn" data-a="doImport">Khôi phục</button><button class="btn ghost" data-a="closeSheet">Hủy</button></div>`)}
 async function replaceState(ns,label){
@@ -652,12 +818,51 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.nudge){nudgeAction(t.dataset.nudge);return}
   if(t.dataset.rdef){S.remindDefault.task=t.dataset.rdef;render();return}
   if(t.dataset.rbed){S.remindDefault.bed=t.dataset.rbed;render();return}
+  if(t.dataset.htab){htab=t.dataset.htab;render();return}
+  if(t.dataset.gday!==undefined){const d=+t.dataset.gday,g=S.gym;g.days=g.days.includes(d)?g.days.filter(x=>x!==d):g.days.concat(d);gymBellChanged();render();return}
+  if(t.dataset.ggoal){S.gym.goal=t.dataset.ggoal;render();return}
+  if(t.dataset.geq){S.gym.equip=t.dataset.geq;render();return}
+  if(t.dataset.grest){S.gym.rest=+t.dataset.grest;render();return}
+  if(t.dataset.grem){if(S.gym.remind!==t.dataset.grem){S.gym.remind=t.dataset.grem;gymBellChanged()}render();return}
+  if(t.dataset.gbell){const k=t.dataset.gbell,g=S.gym;
+    if(k==='done'){g.bell=true;g.oldBell=false}else if(k==='unset')g.bell=false;
+    else if(g.remind==='cal'){deliverIcs('cozy-lich-tap.ics',gymIcs());g.bell=true;g.oldBell=false;save();openSheet(`<h2>📅 Thêm lịch tập vào Lịch</h2><p class="muted">iPhone sẽ hiện sự kiện "<b>Giờ tập – Cozy Life</b>" lặp lại mỗi tuần. Bấm <b>Thêm vào Lịch</b> là xong, Lịch sẽ báo trước giờ tập 30 phút.</p><p class="muted">Không thấy gì hiện ra? Bấm nút dưới, chọn <b>Lưu vào Tệp</b> rồi mở file trong app Tệp.</p><div class="row" style="margin-top:12px"><button class="btn" data-a="closeSheet">Xong</button><button class="btn ghost" data-a="shareIcs">📤 Gửi file lịch</button></div>`);render();return}
+    else{const days=WDORDER.filter(d=>g.days.includes(d)).map(d=>WD[d]).join(', ');openSheet(`<h2>⏰ Đặt báo thức lịch tập</h2><p>Mở app <b>Đồng hồ</b> → <b>Báo thức</b> → <b>＋</b>, đặt lúc <b style="font-size:20px">${gymBellAt()}</b>, mục <b>Lặp lại</b> chọn <b>${days}</b>, nhãn "Đi tập 💪".</p><div class="row" style="margin-top:12px"><a class="btn ghost" href="clock-alarm://">🕰️ Mở app Đồng hồ</a><button class="btn" data-a="gymAlarmDone">👌 Tôi đặt rồi</button></div>`);return}
+    render();return}
+  if(t.dataset.exinfo){exInfo(t.dataset.exinfo);return}
+  if(t.dataset.expick){const w=activeWo(),id=t.dataset.expick;if(!w){exInfo(id);return}if(w.items.some(it=>it.ex===id)){say('Bài này đã có trong buổi tập rồi nè',2500);return}{const e=exById(id),prev=lastSetsOf(id),goal=GOALS.find(x=>x[0]===S.gym.goal)||GOALS[0];w.items.push({ex:id,target:e.g==='stretch'?'30 giây':goal[2],sets:Array.from({length:e.g==='stretch'?1:3},(_,i)=>{const p=prev&&prev[Math.min(i,prev.length-1)];return{r:p?p.r:e.g==='stretch'?30:parseInt(goal[2]),kg:p?p.kg:'',f:'',done:false}})})}closeSheet();render();say('Đã thêm '+exById(id).n+' 💪',2500);return}
+  if(t.dataset.exdel){const id=t.dataset.exdel;if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Bấm lần nữa để xóa';return}S.customEx=S.customEx.filter(e=>e.id!==id);closeSheet();render();return}
+  if(t.dataset.libg){lib.g=t.dataset.libg;t.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===t));$('#libList').innerHTML=libListHtml();return}
+  if(t.dataset.wodel!==undefined){const w=activeWo();if(!w)return;w.items.splice(+t.dataset.wodel,1);render();return}
+  if(t.dataset.woadd!==undefined){const w=activeWo();if(!w)return;const it=w.items[+t.dataset.woadd],l=it.sets[it.sets.length-1]||{r:10,kg:''};it.sets.push({r:l.r,kg:l.kg,f:'',done:false});render();return}
+  if(t.dataset.wf){const w=activeWo();if(!w)return;const[i,j,k]=t.dataset.wf.split(':'),st=w.items[+i].sets[+j];st.f=st.f===k?'':k;t.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===t&&st.f===k));save();return}
+  if(t.dataset.wd){const w=activeWo();if(!w)return;const[i,j]=t.dataset.wd.split(':').map(Number),st=w.items[i].sets[j];st.done=!st.done;
+    if(st.done){const e=exById(w.items[i].ex)||{};if(e.g!=='stretch'){restEnd=Date.now()+S.gym.rest*1000}const all=w.items.every(it=>it.sets.every(s=>s.done));say(all?'Xong hết các set rồi! Bấm Hoàn thành nhé 🎉':['Tốt lắm! ✅','Đẹp! Nghỉ chút rồi tiếp nha','Mạnh mẽ quá 💪'][Math.floor(Math.random()*3)],2500)}
+    render();return}
+  if(t.dataset.wohist){woHistSheet(t.dataset.wohist);return}
+  if(t.dataset.wohdel){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Bấm lần nữa để xóa';return}S.workouts=S.workouts.filter(w=>w.id!==t.dataset.wohdel);closeSheet();render();return}
+  if(t.dataset.gpick){t.setAttribute('aria-pressed',t.getAttribute('aria-pressed')!=='true');return}
   if(t.dataset.subdel){const tk=taskById(editId);if(!tk)return;tk.subs=(tk.subs||[]).filter(x=>x.id!==t.dataset.subdel);$('#subs').innerHTML=subsHtml(tk);render();return}
   if(t.dataset.plen){S.pomoLen=+t.dataset.plen;const p=pomoState();if(!p.endAt&&p.mode==='focus')p.left=pomoLen('focus');render();return}
   if(t.dataset.psnd){S.pomoSound=t.dataset.psnd;if(focusing())startNoise();render();return}
   if(t.dataset.pomotask){pomoState().taskId=t.dataset.pomotask;closeSheet();editId=null;tab='tasks';render();const pc=document.querySelector('.pomo');pc&&pc.scrollIntoView({behavior:'smooth',block:'center'});say('Chọn xong rồi, bấm Bắt đầu nhé 🍅',3000);return}
   const a=t.dataset.a;if(!a)return;
-  if(a==='backTask'){taskSheet(editId);render()}
+  if(a==='goGym'){tab='health';htab='gym';render();scrollTo({top:0})}
+  else if(a==='woStart')startWorkout(suggest());
+  else if(a==='woPickGroups')groupPickSheet();
+  else if(a==='woStartPicked'){const gs=[...document.querySelectorAll('[data-gpick][aria-pressed=true]')].map(b=>b.dataset.gpick);if(!gs.length){say('Chọn ít nhất 1 nhóm cơ nhé');return}closeSheet();startWorkout(suggest(),gs.slice(0,4))}
+  else if(a==='woFinish')finishWorkout();
+  else if(a==='woCancel'){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Bấm lần nữa để hủy';return}S.workouts=S.workouts.filter(w=>w.end);restEnd=0;render();wander()}
+  else if(a==='woCancelOk'){S.workouts=S.workouts.filter(w=>w.end);restEnd=0;closeSheet();render();wander()}
+  else if(a==='restPlus'){if(restEnd)restEnd+=30000;restTick()}
+  else if(a==='restSkip'){restEnd=0;render()}
+  else if(a==='exLib')libSheet(false);
+  else if(a==='exPick')libSheet(true);
+  else if(a==='libMine'){lib.mine=!lib.mine;t.setAttribute('aria-pressed',lib.mine);$('#libList').innerHTML=libListHtml()}
+  else if(a==='exNew')exNewSheet();
+  else if(a==='exSave'){const n=($('#exN').value||'').trim();if(!n){$('#exN').focus();return}(S.customEx=S.customEx||[]).push({id:'c_'+uid(),n,en:'',g:F.g,sec:[],eq:F.eq,lv:'',d:'',tip:($('#exTip').value||'').trim(),custom:true});closeSheet();render();say('Đã thêm bài "'+n+'" vào thư viện 📚')}
+  else if(a==='gymAlarmDone'){S.gym.bell=true;S.gym.oldBell=false;closeSheet();render()}
+  else if(a==='backTask'){taskSheet(editId);render()}
   else if(a==='shareIcs')shareIcs();
   else if(a==='alarmDone'){const tk=taskById(editId);if(tk){tk.bell=true;tk.oldBell=false;tk.bellAsk=null}taskSheet(editId);render();say('Đã đánh dấu 🔔')}
   else if(a==='bedIcs'){deliverIcs('cozy-gio-di-ngu.ics',bedIcs());S.bedBell=true;render();say('Bấm "Thêm vào Lịch" là tối nào iPhone cũng nhắc nha 🌙',5000)}
@@ -688,7 +893,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
 });
 $('#impf').addEventListener('change',async e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(f.size>50*1024*1024){say('File lớn quá, không giống file sao lưu 🤔');return}readImport(await f.text())});
 document.addEventListener('change',e=>{const t=e.target;
-  if(t.dataset.t!==undefined){const d=today(),x=d.top3[+t.dataset.t],tk=x.tid&&taskById(x.tid);if(tk)setDone(tk,t.checked);else x.d=t.checked;render();const n=d.top3.map(top3Slot).filter(x=>x.d&&x.t).length;say(n===3?'Xong cả 3 việc! Ăn mừng thôi 🎆':t.checked?'Tuyệt vời! Xong một việc rồi ✅':'Không sao, làm lại sau nhé');return}
+  if(t.dataset.t!==undefined){const d=today(),x=d.top3[+t.dataset.t],tk=x.tid&&taskById(x.tid);if(tk)setDone(tk,t.checked);else x.d=t.checked;render();const n=d.top3.map(top3Slot).filter(x=>x.d&&x.t).length;if(n===3&&t.checked)celebrate(2);say(n===3?'Xong cả 3 việc! Ăn mừng thôi 🎆':t.checked?'Tuyệt vời! Xong một việc rồi ✅':'Không sao, làm lại sau nhé');return}
   if(t.dataset.tt!==undefined){today().top3[+t.dataset.tt].t=t.value.trim();save();return}
   if(t.dataset.tdone){const tk=taskById(t.dataset.tdone);if(!tk)return;setDone(tk,t.checked);render();if(editId)taskSheet(editId);say(t.checked?['Xong rồi! Giỏi quá ✅','Gạch thêm một việc nè 🎉','Tuyệt vời, '+S.name+'! ✨'][Math.floor(Math.random()*3)]:'Mở lại việc này nha');return}
   if(editId&&['tTitle','tDue','tTime','tLink','tNote'].includes(t.id)){const tk=taskById(editId);if(!tk)return;
@@ -701,8 +906,11 @@ document.addEventListener('change',e=>{const t=e.target;
     if(t.dataset.sub)sb.d=t.checked;else{const v=t.value.trim();if(v)sb.t=v;else t.value=sb.t}
     $('#subs').innerHTML=subsHtml(tk);render();return}
   if(t.id==='nm'){S.name=t.value.trim()||'bạn';render();return}
+  if(t.id==='gTime'&&t.value){S.gym.time=t.value;gymBellChanged();render();return}
+  if(t.dataset.wr||t.dataset.wk){const w=activeWo();if(!w)return;const[i,j]=(t.dataset.wr||t.dataset.wk).split(':').map(Number),st=w.items[i]&&w.items[i].sets[j];if(!st)return;const v=t.value===''?'':Math.max(0,+t.value);if(t.dataset.wr)st.r=v;else st.kg=v;save();return}
   if(t.id==='bt'&&t.value){S.bedTarget=t.value;if(S.remindDefault.bed==='cal'&&S.bedBell){S.bedBell=false;say('Nhớ xóa sự kiện Giờ đi ngủ cũ trong Lịch rồi thêm lại nhé',5000)}render()}
 });
+document.addEventListener('input',e=>{if(e.target.id==='libQ'){lib.q=e.target.value;$('#libList').innerHTML=libListHtml()}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='impw'){e.preventDefault();const b=document.querySelector('[data-a=impw]');b&&b.click()}});
 document.addEventListener('submit',e=>{
   if(e.target.id==='taskF'){e.preventDefault();const v=$('#tnew').value.trim();if(!v)return;S.tasks.push({id:uid(),title:v,group:S.taskGroup,done:false,doneAt:null,createdAt:new Date().toISOString(),due:null,dueTime:'',link:'',note:'',subs:[]});$('#tnew').value='';render();$('#tnew').focus();say('Đã thêm vào '+gInfo(S.taskGroup)[2]+' 📋',2500);return}
@@ -719,7 +927,7 @@ function place(x,y,ms){pet.style.transition=ms?`transform ${ms}ms linear`:'none'
 const IDLE=['Lalala~ 🎶','{n} uống nước chưa đó?','Hôm nay mình đi dạo nè!','Hihi 🤭','Có cần mình giúp gì không?','Nhớ vươn vai một chút nha 🙆'];
 function low(){const c=today().checkin||{};return isNight()||c.mood==='sleepy'||c.body==='sick'||c.body==='tired'||(c.energy&&c.energy<=2)}
 function wander(){clearTimeout(P.t);if(P.drag)return;if(P.act)endAct();const b=bounds();
-  if(focusing()){pet.classList.remove('walking','left');pet.classList.add('sitting');place(b.maxX-4,b.maxY,700);drawChibi();return}if(reduce||S.roam===false){pet.classList.remove('walking');place(b.maxX-6,b.maxY,600);return}let tx,ty;
+  if(dnd()){pet.classList.remove('walking','left');pet.classList.add('sitting');place(b.maxX-4,b.maxY,700);drawChibi();return}if(reduce||S.roam===false){pet.classList.remove('walking');place(b.maxX-6,b.maxY,600);return}let tx,ty;
   const lw=low();if(lw){ty=Math.random()<.85?b.maxY:rnd(b.maxY-160,b.maxY);tx=Math.min(b.maxX,Math.max(b.minX,P.x+rnd(-110,110)))}else if(Math.random()<.55){ty=b.maxY;tx=rnd(b.minX,b.maxX)}else{tx=rnd(b.minX,b.maxX);ty=rnd(b.minY,b.maxY)}
   const ms=Math.max(400,Math.hypot(tx-P.x,ty-P.y)/(lw?22:75)*1000);
   pet.classList.toggle('left',tx<P.x);pet.classList.remove('sitting');pet.classList.add('walking');place(tx,ty,ms);
@@ -757,7 +965,7 @@ function startAct(a){clearTimeout(P.t);if(P.act)endAct();a=a||pickAct();P.act=a;
 function poke(){clearTimeout(P.t);pet.classList.remove('walking','sitting');const cur=getComputedStyle(pet).transform;if(cur&&cur!=='none'){const m=new DOMMatrix(cur);place(m.m41,m.m42,0)}
   const svg=pet.querySelector('svg');if(svg){svg.classList.remove('jump');void svg.offsetWidth;svg.classList.add('jump')}
   if(P.act==='drink'){const d=today();if(d.water<8)d.water++;save();if(tab==='today')render();say(d.water>=8?'Cụng ly! Đủ 8 ly rồi, '+S.name+' giỏi quá 🎉':'Cụng ly! 🥂 +1 ly ('+d.water+'/8)');endAct()}
-  else{if(P.act)endAct();say(focusing()?'Suỵt, mình đang tập trung cùng '+S.name+' nè 🤫 Còn '+mmss(pomoLeft())+' thôi!':PRAISE[Math.floor(Math.random()*PRAISE.length)].replace('{n}',S.name))}
+  else{if(P.act)endAct();say(activeWo()?'Cố lên '+S.name+', thêm một set nữa thôi 💪':focusing()?'Suỵt, mình đang tập trung cùng '+S.name+' nè 🤫 Còn '+mmss(pomoLeft())+' thôi!':PRAISE[Math.floor(Math.random()*PRAISE.length)].replace('{n}',S.name))}
   for(let i=0;i<3;i++){const h=document.createElement('span');h.className='heart';h.textContent=['💖','💗','✨'][i];h.style.left=(18+i*18)+'px';h.style.animationDelay=i*.12+'s';pet.appendChild(h);setTimeout(()=>h.remove(),1800)}
   P.t=setTimeout(wander,2600)}
 pet.addEventListener('pointerdown',e=>{P.down={x:e.clientX,y:e.clientY,ox:e.clientX-P.x,oy:e.clientY-P.y};pet.setPointerCapture(e.pointerId)});
@@ -779,7 +987,7 @@ else if(S.pendingBed&&!today().checkin)say('Chào buổi sáng '+S.name+'! Làm 
 else if(!today().checkin&&!isNight())say('Chào '+S.name+'! Mình làm Check-in '+(new Date().getHours()<12?'buổi sáng':'hôm nay')+' nhé?');
 else if(isNight())say('Sắp đến giờ ngủ rồi, '+S.name+' ơi 🌙');
 setInterval(()=>{if(!$('#sheetbg').classList.contains('on'))drawChibi()},60000);
-setInterval(pomoTick,1000);
+setInterval(pomoTick,1000);setInterval(restTick,1000);
 if(S.pomo&&S.pomo.endAt){if(pomoLeft()<=0)pomoDone(true);else if(focusing())keepAwake()}
 setTimeout(checkNudges,6000);setInterval(checkNudges,30000);
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')setTimeout(checkNudges,2500)});

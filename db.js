@@ -5,13 +5,14 @@
      days      : mỗi ngày 1 bản ghi, khóa = 'YYYY-MM-DD'
      sleeps    : mỗi đêm ngủ 1 bản ghi, khóa = id
      tasks     : mỗi việc 1 bản ghi, khóa = id (từ phiên bản 2)
+     workouts  : mỗi buổi tập 1 bản ghi, khóa = id (từ phiên bản 3)
      snapshots : bản chụp toàn bộ dữ liệu (tự động mỗi ngày + trước khi khôi phục/xóa)
    Nếu trình duyệt không cho dùng IndexedDB thì tạm lưu vào localStorage. */
 (function () {
-  const NAME = 'cozy-life-os', VERSION = 2, FALLBACK_KEY = 'cozy-life-os-fallback';
-  const DATA = ['settings', 'days', 'sleeps', 'tasks'], LISTS = ['days', 'sleeps', 'tasks'];
+  const NAME = 'cozy-life-os', VERSION = 3, FALLBACK_KEY = 'cozy-life-os-fallback';
+  const DATA = ['settings', 'days', 'sleeps', 'tasks', 'workouts'], LISTS = ['days', 'sleeps', 'tasks', 'workouts'];
   let dbp = null, useFallback = false;
-  const cache = { settings: null, days: {}, sleeps: {}, tasks: {} };
+  const cache = { settings: null, days: {}, sleeps: {}, tasks: {}, workouts: {} };
 
   function open() {
     if (dbp) return dbp;
@@ -25,6 +26,7 @@
         if (!db.objectStoreNames.contains('sleeps')) db.createObjectStore('sleeps');
         if (!db.objectStoreNames.contains('snapshots')) db.createObjectStore('snapshots');
         if (!db.objectStoreNames.contains('tasks')) db.createObjectStore('tasks');
+        if (!db.objectStoreNames.contains('workouts')) db.createObjectStore('workouts');
       };
       r.onsuccess = () => {
         const db = r.result;
@@ -51,10 +53,11 @@
   function split(S) {
     const settings = {};
     for (const k in S) if (!LISTS.includes(k)) settings[k] = S[k];
-    const sleeps = {}, tasks = {};
+    const sleeps = {}, tasks = {}, workouts = {};
     (S.sleeps || []).forEach(s => { sleeps[sleepId(s)] = s; });
     (S.tasks || []).forEach(t => { tasks[t.id] = t; });
-    return { settings, days: S.days || {}, sleeps, tasks };
+    (S.workouts || []).forEach(w => { workouts[w.id] = w; });
+    return { settings, days: S.days || {}, sleeps, tasks, workouts };
   }
 
   function rememberAll(S) {
@@ -67,13 +70,14 @@
   async function loadState() {
     try {
       const db = await open();
-      const [st, days, sleeps, tasks] = await Promise.all(DATA.map(n => getAll(db, n)));
+      const [st, days, sleeps, tasks, workouts] = await Promise.all(DATA.map(n => getAll(db, n)));
       const main = (st.find(([k]) => k === 'main') || [])[1];
-      if (!main && !days.length && !sleeps.length && !tasks.length) return null;
+      if (!main && !days.length && !sleeps.length && !tasks.length && !workouts.length) return null;
       const S = Object.assign({}, main || {});
       S.days = {}; days.forEach(([k, v]) => { S.days[k] = v; });
       S.sleeps = sleeps.map(([, v]) => v).sort((a, b) => String(a.bed).localeCompare(String(b.bed)));
       S.tasks = tasks.map(([, v]) => v).sort((a, b) => String(a.createdAt).localeCompare(String(b.createdAt)));
+      S.workouts = workouts.map(([, v]) => v).sort((a, b) => String(a.start).localeCompare(String(b.start)));
       rememberAll(S);
       return S;
     } catch (e) {
