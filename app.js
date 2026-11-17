@@ -16,7 +16,7 @@ const PRAISE=['Hôm nay {n} giỏi lắm đó!','{n} ơi, uống ngụm nước 
 const HAIRC=['#2B2223','#4A3530','#6B4A3A','#C98B6B','#F4A7B9'];
 
 const LOOKDEF0={face:'auto',blush:'soft',lip:'#E8848D',lash:'natural',freckles:false,eyewear:'none',head:'none',ear:'stud',watch:true,bag:true};
-const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null,gym:{days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},workouts:[],customEx:[]});
+const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null,gym:{days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},workouts:[],customEx:[],water:{cups:8,ml:250,weight:'',activity:'low',auto:true}});
 
 /* ---------- Đọc dữ liệu từ máy ---------- */
 let S=DEF();
@@ -37,6 +37,7 @@ function normalize(){
   S.gym=Object.assign({days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},S.gym||{});
   if(!Array.isArray(S.workouts))S.workouts=[];
   if(!Array.isArray(S.customEx))S.customEx=[];
+  S.water=Object.assign({cups:8,ml:250,weight:'',activity:'low',auto:true},S.water||{});
   if(!S.v2){const d=DEF();Object.assign(S,{hair:d.hair,hairColor:d.hairColor,fav:d.fav,autoSwap:true,v2:true})}
 }
 const loaded=await CozyDB.loadState();
@@ -117,8 +118,8 @@ function eye(x,t,L,ef){const d=x<100?-1:1,ink='#3E3233',fi=ef||ink,hl2=ef?`<circ
   if(t==='arc')return `<path d="M${x-9} 106Q${x} 96 ${x+9} 106" fill="none" stroke="${ink}" stroke-width="4" stroke-linecap="round"/>`;
   if(t==='down')return `<path d="M${x-8} 106Q${x} 110 ${x+8} 106" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
   if(t==='cool')return `<ellipse cx="${x}" cy="107" rx="6.5" ry="5.5" fill="${fi}"/><circle cx="${x+2.5}" cy="106" r="1.8" fill="#fff"/><path d="M${x-8} 102.5H${x+8}M${x+d*8} 102.5l${d*3} -2" stroke="${ink}" stroke-width="2.8" stroke-linecap="round"/>`;return ''}
-const POSE={cocoa:'mouth',gift:'hold',drink:'mouth',boba:'mouth',yawn:'mouth',tissue:'mouth',read:'hold',phone:'hold',laptop:'hold',teddy:'hold',stretch:'up',dance:'up',wave:'wave'};
-const ACTFACE={cocoa:'happy',gift:'happy',snowman:'happy',drink:'happy',boba:'smile',read:'look',phone:'look',laptop:'look',yawn:'yawn',nap:'sleepy',tissue:'squeeze',shiver:'sick',teddy:'sad',dance:'happy',wave:'happy',stretch:'squeeze',breathe:'calmclosed'};
+const POSE={magic:'up',cocoa:'mouth',gift:'hold',drink:'mouth',boba:'mouth',yawn:'mouth',tissue:'mouth',read:'hold',phone:'hold',laptop:'hold',teddy:'hold',stretch:'up',dance:'up',wave:'wave'};
+const ACTFACE={magic:'happy',cocoa:'happy',gift:'happy',snowman:'happy',drink:'happy',boba:'smile',read:'look',phone:'look',laptop:'look',yawn:'yawn',nap:'sleepy',tissue:'squeeze',shiver:'sick',teddy:'sad',dance:'happy',wave:'happy',stretch:'squeeze',breathe:'calmclosed'};
 function armsSvg(pose,AF,SK){const arm=(cx,cy,r)=>`<ellipse cx="${cx}" cy="${cy}" rx="9" ry="19" fill="${AF}" transform="rotate(${r} ${cx} ${cy})"/>`,hand=(x,y)=>`<circle cx="${x}" cy="${y}" r="8.5" fill="${SK}"/>`;
   const L=arm(62,168,14)+hand(57,186),Rt=arm(138,168,-14)+hand(144,184);
   if(pose==='hold')return arm(72,166,-38)+arm(128,166,38)+hand(85,178)+hand(115,178);
@@ -221,6 +222,38 @@ function suggestions(){const d=today(),c=d.checkin,out=[];if(!c)return out;
 
 const label=(arr,v)=>{const x=arr.find(a=>a[0]===v);return x?x[1]:'–'};
 function cupSvg(f){return `<svg viewBox="0 0 30 44"><path d="M5 6H25L22 40H8Z" fill="${f?'#BFE6FF':'none'}" stroke="#8CC8EA" stroke-width="2.5" stroke-linejoin="round"/>${f?'<path d="M8 16H22" stroke="#fff" stroke-width="2" opacity=".7"/>':''}</svg>`}
+/* 💧 Mục tiêu uống nước */
+const fmtL=ml=>ml>=1000?(ml/1000).toFixed(2).replace(/\.?0+$/,'').replace('.',',')+' lít':ml+' ml';
+function waterExtra(){const w=S.water;if(!w.auto)return{ml:0,why:[]};let ml=0,why=[];if(S.gym&&S.gym.days.length&&planFor(new Date())){ml+=500;why.push('ngày tập')}const c=today().checkin;if(c&&c.weather==='hot'){ml+=500;why.push('trời nóng')}return{ml,why}}
+const waterGoal=()=>Math.min(24,S.water.cups+Math.round(waterExtra().ml/S.water.ml));
+const WACT=[['low','Ít (dưới 30 phút)',0],['mid','Vừa (30–60 phút)',350],['high','Nhiều (trên 60 phút)',700]];
+function waterRec(){const kg=parseFloat(S.water.weight);if(!(kg>=25&&kg<=250))return null;const add=(WACT.find(x=>x[0]===S.water.activity)||WACT[0])[2];const lo=Math.round(kg*30+add),hi=Math.round(kg*35+add);return{lo,hi,cups:Math.max(3,Math.round((lo+hi)/2/S.water.ml))}}
+/* 🍬 Chibi biến kẹo và thả vào lọ */
+const CANDY_COLS=['#FF9E9E','#A8E6CF','#DED2F9','#FFE9A8','#FFC8A8'];
+const candyCount=()=>Object.values(S.days).reduce((a,x)=>a+((x&&x.candies)||[]).length,0);
+const candySvg=c=>`<svg viewBox="0 0 44 28" aria-hidden="true"><path d="M3 5l9 9-9 9z M41 5l-9 9 9 9z" fill="${c}" opacity=".85"/><circle cx="22" cy="14" r="10" fill="${c}"/><path d="M15 10q7-5 14 0" stroke="#fff" stroke-width="2.4" fill="none" opacity=".75" stroke-linecap="round"/></svg>`;
+function sparkle(x,y,n){for(let i=0;i<(n||5);i++){const s=document.createElement('span');s.className='spark';s.textContent=['✨','⭐','💖'][i%3];s.style.left=(x-8)+'px';s.style.top=(y-8)+'px';document.body.appendChild(s);
+  const a=Math.random()*Math.PI*2,r=26+Math.random()*26;s.animate([{transform:'translate(0,0) scale(.4)',opacity:1},{transform:`translate(${Math.cos(a)*r}px,${Math.sin(a)*r}px) scale(1)`,opacity:0}],{duration:800+Math.random()*300,easing:'ease-out',fill:'forwards'}).onfinish=()=>s.remove()}}
+let candyBusy=false;
+function candyDrop(text){today().candies.push(text);save();const jar=document.querySelector('.jar svg');
+  const plain=()=>{candyBusy=false;P.act=null;render();say('Thêm một viên kẹo ngọt ngào vào lọ rồi 🍬')};
+  if(!jar||reduce||candyBusy||!Element.prototype.animate)return plain();
+  candyBusy=true;if(document.activeElement)document.activeElement.blur();$('#candy').value='';
+  jar.scrollIntoView({behavior:'smooth',block:'center'});
+  setTimeout(()=>{const j=document.querySelector('.jar svg');if(!j)return plain();const r=j.getBoundingClientRect(),b=bounds();clearTimeout(P.t);if(P.act)endAct();
+    const leftSide=r.left-PW+8>=b.minX,tx=Math.min(b.maxX,Math.max(b.minX,leftSide?r.left-PW+8:r.right-6)),ty=Math.min(b.maxY,Math.max(b.minY,r.bottom-PH)),ms=Math.max(450,Math.hypot(tx-P.x,ty-P.y)/160*1000);
+    pet.classList.toggle('left',tx<P.x);pet.classList.remove('sitting');pet.classList.add('walking');place(tx,ty,ms);
+    setTimeout(()=>{pet.classList.remove('walking');pet.classList.toggle('left',!leftSide);P.act='magic';drawChibi();say('Bùm! Một viên kẹo nè ✨',2600);
+      const col=CANDY_COLS[(candyCount()-1)%5],c=document.createElement('div');c.className='flycandy';c.innerHTML=candySvg(col);document.body.appendChild(c);
+      const sx=P.x+PW/2-16,sy=P.y-14;c.style.left=sx+'px';c.style.top=sy+'px';
+      c.animate([{transform:'scale(0) rotate(-120deg)',opacity:0},{transform:'scale(1.35) rotate(15deg)',opacity:1,offset:.65},{transform:'scale(1) rotate(0)',opacity:1}],{duration:650,easing:'ease-out',fill:'forwards'});
+      sparkle(sx+16,sy+10,6);
+      setTimeout(()=>{const j2=document.querySelector('.jar svg');if(!j2){c.remove();return plain()}const r2=j2.getBoundingClientRect(),ex=r2.left+r2.width/2-16-sx,ey=r2.top+r2.height*.08-sy,my=Math.min(0,ey)-80;
+        c.animate([{transform:'translate(0,0) rotate(0)'},{transform:`translate(${ex*.5}px,${my}px) rotate(200deg)`,offset:.5},{transform:`translate(${ex}px,${ey}px) rotate(360deg) scale(.85)`}],{duration:800,easing:'cubic-bezier(.3,.1,.5,1)',fill:'forwards'}).onfinish=()=>{
+          c.animate([{transform:`translate(${ex}px,${ey}px) scale(.85)`,opacity:1},{transform:`translate(${ex}px,${ey+r2.height*.55}px) scale(.6)`,opacity:0}],{duration:380,easing:'ease-in',fill:'forwards'}).onfinish=()=>{
+            c.remove();candyBusy=false;P.act=null;pet.classList.remove('left');render();const j3=document.querySelector('.jar svg');
+            if(j3){j3.classList.add('jarpop');const r3=j3.getBoundingClientRect();sparkle(r3.left+r3.width/2,r3.top+r3.height*.5,5)}
+            say('Thả vào lọ rồi! Ngọt ngào ghê 🍬',3500);P.t=setTimeout(wander,2600)}}},750)},ms)},380)}
 function jarSvg(n){let c='';const cols=['#FF9E9E','#A8E6CF','#DED2F9','#FFE9A8','#FFC8A8'];for(let i=0;i<Math.min(n,24);i++){c+=`<circle cx="${26+(i%4)*15}" cy="${112-Math.floor(i/4)*14}" r="7" fill="${cols[i%5]}"/>`}
   return `<svg viewBox="0 0 96 130" aria-hidden="true"><rect x="22" y="4" width="52" height="14" rx="5" fill="#E9C9A8"/><path d="M18 20H78Q86 20 86 30V118Q86 126 78 126H18Q10 126 10 118V30Q10 20 18 20Z" fill="rgba(255,255,255,.55)" stroke="#E6D3C0" stroke-width="3"/>${c}</svg>`}
 
@@ -248,7 +281,10 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
   if(nb.length)h+=`<div class="card"><h2>🔔 Việc chưa có chuông <small>${nb.length}</small></h2><p class="muted" style="margin:0 0 4px">Mấy việc này chọn mức 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0,3).map(taskRow).join('')}</div>`;
   const dueL=S.tasks.filter(t=>!t.done&&t.due&&t.due<=dk(new Date())).sort(sortTasks);
   if(dueL.length)h+=`<div class="card"><h2>📋 Việc đến hạn <small>${dueL.length}</small></h2>${dueL.slice(0,5).map(taskRow).join('')}<button class="btn ghost full" data-tab="tasks" style="margin-top:8px">Mở tab Việc</button></div>`;
-  h+=`<div class="card"><h2>Uống nước <small>${d.water}/8 ly</small></h2><div class="cups">${Array.from({length:8},(_,i)=>`<button class="cup" data-w="${i}" aria-label="Ly ${i+1}">${cupSvg(i<d.water)}</button>`).join('')}</div></div>`;
+  const WG=waterGoal(),wx=waterExtra(),ml=S.water.ml;
+  h+=`<div class="card"><h2>Uống nước <small>${d.water}/${WG} ly · ${fmtL(d.water*ml)}/${fmtL(WG*ml)} <button class="chip sm gear" data-spgo="water" aria-label="Cài đặt uống nước">⚙️</button></small></h2><div class="cups" style="grid-template-columns:repeat(${Math.min(8,WG)},minmax(0,1fr))">${Array.from({length:WG},(_,i)=>`<button class="cup" data-w="${i}" aria-label="Ly ${i+1}">${cupSvg(i<d.water)}</button>`).join('')}</div>
+  ${d.water>WG?`<p class="muted" style="margin:6px 0 0">Đã uống thêm ${d.water-WG} ly ngoài mục tiêu 💙</p>`:''}${d.water>=WG?`<button class="chip sm" data-a="waterPlus" style="margin-top:8px">＋ Uống thêm 1 ly</button>`:''}
+  ${wx.ml?`<p class="muted" style="margin:6px 0 0">Hôm nay mục tiêu +${Math.round(wx.ml/ml)} ly vì ${wx.why.join(' và ')}.</p>`:''}</div>`;
   const nC=Object.values(S.days).reduce((a,x)=>a+((x&&x.candies)||[]).length,0);
   h+=`<div class="card"><h2>Lọ Kẹo Niềm Vui <small>${nC} viên</small></h2><div class="jar">${jarSvg(nC)}<div class="jarside">
     <form id="candyF"><input class="inp" id="candy" placeholder="Một niềm vui nhỏ hôm nay…" maxlength="120"><button class="btn" style="margin-top:8px">+ Thả kẹo</button></form>
@@ -710,6 +746,18 @@ function viewSettings(){const st=state(),L=S.look;
    demo:()=>`  <div class="card demo"><h2>🧪 Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
   <h3 style="font-size:15px;margin:14px 0 8px">Hoạt động của Chibi</h3><p class="muted" style="margin:0 0 8px">Bình thường bé tự chọn theo tâm trạng và thể trạng hôm nay. Bấm để xem trước:</p><div class="row">${Object.keys(ACTNAME).map(k=>`<button class="chip" data-act="${k}">${ACTNAME[k]}</button>`).join('')}</div></div>
   `,
+   water:()=>{const w=S.water,r=waterRec();return `<div class="card"><h2>💧 Uống nước mỗi ngày</h2>
+  <div class="q" style="margin-top:4px"><h3>Mục tiêu</h3><div class="stepper"><button data-wc="-1" aria-label="Bớt 1 ly">−</button><b>${w.cups} ly</b><button data-wc="1" aria-label="Thêm 1 ly">＋</button></div></div>
+  <div class="q"><h3>Dung tích 1 ly</h3><div class="row">${[150,200,250,300,350,500].map(n=>`<button class="chip sm" data-wml="${n}" aria-pressed="${w.ml===n}">${n} ml</button>`).join('')}</div></div>
+  <div class="okline" style="margin-top:12px"><span>💧</span><span>Mỗi ngày: <b>${w.cups} ly × ${w.ml} ml = ${fmtL(w.cups*w.ml)}</b></span></div>
+  <button class="chip" data-a="wAuto" aria-pressed="${w.auto}">Tự cộng thêm 500 ml vào ngày tập và ngày trời nóng</button></div>
+  <div class="card"><h2>🧮 Gợi ý theo cơ thể</h2>
+  <p class="muted" style="margin:0 0 8px">Cách tính phổ biến: <b>30–35 ml cho mỗi kg cân nặng</b>, cộng thêm khoảng 350 ml cho mỗi 30 phút vận động. Các khuyến nghị chính thức không dùng chiều cao nên app chỉ hỏi cân nặng.</p>
+  <div class="q"><h3>Cân nặng (kg)</h3><input class="inp" type="number" inputmode="decimal" id="wkg" value="${esc(w.weight)}" min="25" max="250" step="0.5" placeholder="vd: 50" style="max-width:140px"></div>
+  <div class="q"><h3>Vận động mỗi ngày</h3><div class="row">${WACT.map(([k,n])=>`<button class="chip sm" data-wact="${k}" aria-pressed="${w.activity===k}">${n}</button>`).join('')}</div></div>
+  ${r?`<div class="okline" style="margin-top:12px"><span>✨</span><span>Gợi ý: khoảng <b>${fmtL(r.lo)} – ${fmtL(r.hi)}</b> mỗi ngày ≈ <b>${r.cups} ly ${w.ml} ml</b></span></div><button class="btn" data-a="wUse" ${r.cups===w.cups?'disabled':''}>${r.cups===w.cups?'Đang dùng mức gợi ý ✓':'Dùng gợi ý này'}</button>`:'<p class="muted">Nhập cân nặng để xem gợi ý.</p>'}
+  <p class="muted" style="margin:12px 0 0">Tham khảo: Cơ quan An toàn Thực phẩm châu Âu (EFSA) khuyến nghị tổng lượng nước khoảng 2,0 lít/ngày cho nữ và 2,5 lít cho nam, tính cả nước từ thức ăn. Con số "8 ly mỗi ngày" không có cơ sở khoa học. Cơn khát và màu nước tiểu (vàng nhạt là ổn) cũng là cách theo dõi tốt.</p>
+  <div class="tip">⚠️ Nếu bạn có bệnh tim, thận, gan, đang mang thai, hoặc được bác sĩ dặn hạn chế/tăng lượng nước, hãy theo chỉ định của bác sĩ.</div></div>`},
    about:()=>`  <div class="card"><h2>💝 Giới thiệu & Ghi công</h2><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
   <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Everkinetic</b> – hình tư thế bài tập · Greg Priday & cộng đồng (github.com/everkinetic/data) · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.vi" target="_blank" rel="noopener">CC BY-SA 4.0</a> · chỉ nén dung lượng, không sửa nội dung hình</li><li><b>body-highlighter</b> – hình cơ thể tô nhóm cơ · GV79 & alahaxe · giấy phép MIT</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></div>
   <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>
@@ -718,12 +766,13 @@ function viewSettings(){const st=state(),L=S.look;
   return settingsHub()}
 function settingsHub(){const bd=backupDue(),ds=S.lastBackup?daysSince(S.lastBackup):null;
   const G=[['Chibi',[['wardrobe','👗','Phòng thay đồ','Trang phục, đồ ngủ, phụ kiện, trang điểm, tóc'],['me','🧸','Bạn & Chibi','Tên: '+esc(S.name)+' · ngủ lúc '+S.bedTarget+' · '+(S.roam===false?'ngồi yên':'chạy lung tung')],['season','🎨','Giao diện theo mùa',{auto:'Tự động',xmas:'Luôn bật Giáng sinh',none:'Tắt'}[S.theme||'auto']]]],
+    ['Sức khỏe',[['water','💧','Uống nước',S.water.cups+' ly × '+S.water.ml+' ml = '+fmtL(S.water.cups*S.water.ml)+' mỗi ngày']]],
     ['Ứng dụng',[['remind','🔔','Nhắc nhở','Việc có hạn: '+lvInfo(S.remindDefault.task)[1]+' '+lvInfo(S.remindDefault.task)[2]+' · Giờ ngủ: '+lvInfo(S.remindDefault.bed)[1]],['data','💾','Dữ liệu & sao lưu',(S.lastBackup?'Sao lưu lần cuối: '+(ds?ds+' ngày trước':'hôm nay'):'Chưa sao lưu lần nào'),bd],...(standalone()?[]:[['install','📲','Cài lên màn hình chính','Mở như app, dùng được khi không có mạng']])]],
     ['Khác',[['demo','🧪','Xem thử trạng thái','Giờ đi ngủ, các hoạt động của Chibi'],['about','💝','Giới thiệu & Ghi công','Thư viện mã nguồn mở và giấy phép']]]];
   return G.map(([t,rows])=>`<div class="card setgroup"><h3 class="sgh">${t}</h3>${rows.map(([k,i,n,sub,warn])=>`<button class="setrow2" data-sp="${k}"><span class="si">${i}</span><span class="stx"><b>${n}</b><i class="${warn?'warnt':''}">${warn?'⚠️ ':''}${sub}</i></span><span class="chev">›</span></button>`).join('')}</div>`).join('')
   +`<p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.18-4';
+const APPVER='2026.11.18-5';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -820,7 +869,11 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.sp!==undefined){setPage=t.dataset.sp||null;render();scrollTo({top:0});return}
   if(t.dataset.f){e.preventDefault();F[t.dataset.f]=isNaN(t.dataset.v)?t.dataset.v:+t.dataset.v;t.parentNode.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
   if(t.dataset.star){F.q=+t.dataset.star;t.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.star<=F.q));return}
-  if(t.dataset.w!==undefined){const d=today(),i=+t.dataset.w;d.water=d.water===i+1?i:i+1;render();say(d.water>=8?'Đủ 8 ly rồi! '+S.name+' giỏi quá 🎉':'Thêm 1 ly nữa nè 💧 ('+d.water+'/8)');return}
+  if(t.dataset.w!==undefined){const d=today(),i=+t.dataset.w,G=waterGoal(),was=d.water;d.water=d.water===i+1?i:i+1;render();if(d.water>=G&&was<G)celebrate(1);say(d.water>=G?'Đủ '+G+' ly rồi! '+S.name+' giỏi quá 🎉':'Thêm 1 ly nữa nè 💧 ('+d.water+'/'+G+')');return}
+  if(t.dataset.spgo){tab='set';setPage=t.dataset.spgo;render();scrollTo({top:0});return}
+  if(t.dataset.wc){S.water.cups=Math.max(3,Math.min(20,S.water.cups+(+t.dataset.wc)));render();return}
+  if(t.dataset.wml){S.water.ml=+t.dataset.wml;render();return}
+  if(t.dataset.wact){S.water.activity=t.dataset.wact;render();return}
   if(t.dataset.hair){S.hair=t.dataset.hair;render();return}
   if(t.dataset.hc){S.hairColor=t.dataset.hc;render();return}
   if(t.dataset.fav){S.fav=t.dataset.fav;render();say('Bộ "'+OUTFITS[S.fav].n+'" xinh quá đi! 💕');return}
@@ -875,6 +928,9 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.psnd){S.pomoSound=t.dataset.psnd;if(focusing())startNoise();render();return}
   if(t.dataset.pomotask){pomoState().taskId=t.dataset.pomotask;closeSheet();editId=null;tab='tasks';render();const pc=document.querySelector('.pomo');pc&&pc.scrollIntoView({behavior:'smooth',block:'center'});say('Chọn xong rồi, bấm Bắt đầu nhé 🍅',3000);return}
   const a=t.dataset.a;if(!a)return;
+  if(a==='waterPlus'){today().water++;render();say('Thêm 1 ly 💧 ('+today().water+' ly hôm nay)');return}
+  if(a==='wUse'){const r=waterRec();if(r){S.water.cups=Math.min(20,r.cups);render();say('Mục tiêu mới: '+S.water.cups+' ly mỗi ngày 💧')}return}
+  if(a==='wAuto'){S.water.auto=!S.water.auto;render();return}
   if(a==='goGym'){tab='health';htab='gym';render();scrollTo({top:0})}
   else if(a==='woStart')startWorkout(suggest());
   else if(a==='woPickGroups')groupPickSheet();
@@ -934,6 +990,7 @@ document.addEventListener('change',e=>{const t=e.target;
     if(t.dataset.sub)sb.d=t.checked;else{const v=t.value.trim();if(v)sb.t=v;else t.value=sb.t}
     $('#subs').innerHTML=subsHtml(tk);render();return}
   if(t.id==='nm'){S.name=t.value.trim()||'bạn';render();return}
+  if(t.id==='wkg'){S.water.weight=t.value;render();return}
   if(t.id==='gTime'&&t.value){S.gym.time=t.value;gymBellChanged();render();return}
   if(t.dataset.wr||t.dataset.wk){const w=activeWo();if(!w)return;const[i,j]=(t.dataset.wr||t.dataset.wk).split(':').map(Number),st=w.items[i]&&w.items[i].sets[j];if(!st)return;const v=t.value===''?'':Math.max(0,+t.value);if(t.dataset.wr)st.r=v;else st.kg=v;save();return}
   if(t.id==='bt'&&t.value){S.bedTarget=t.value;if(S.remindDefault.bed==='cal'&&S.bedBell){S.bedBell=false;say('Nhớ xóa sự kiện Giờ đi ngủ cũ trong Lịch rồi thêm lại nhé',5000)}render()}
@@ -943,7 +1000,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='impw'
 document.addEventListener('submit',e=>{
   if(e.target.id==='taskF'){e.preventDefault();const v=$('#tnew').value.trim();if(!v)return;S.tasks.push({id:uid(),title:v,group:S.taskGroup,done:false,doneAt:null,createdAt:new Date().toISOString(),due:null,dueTime:'',link:'',note:'',subs:[]});$('#tnew').value='';render();$('#tnew').focus();say('Đã thêm vào '+gInfo(S.taskGroup)[2]+' 📋',2500);return}
   if(e.target.id==='subF'){e.preventDefault();const tk=taskById(editId),v=$('#subNew').value.trim();if(!tk||!v)return;(tk.subs=tk.subs||[]).push({id:uid(),t:v,d:false});$('#subNew').value='';$('#subs').innerHTML=subsHtml(tk);render();$('#subNew').focus();return}
-  if(e.target.id!=='candyF')return;e.preventDefault();const v=$('#candy').value.trim();if(!v)return;today().candies.push(v);render();say('Thêm một viên kẹo ngọt ngào vào lọ rồi 🍬')});
+  if(e.target.id!=='candyF')return;e.preventDefault();const v=$('#candy').value.trim();if(!v||candyBusy)return;candyDrop(v)});
 $('#sheetbg').addEventListener('click',e=>{if(e.target.id==='sheetbg'){closeSheet();pendingImport=null;editId=null}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheet();editId=null}});
 /* ---------- Chibi chạy lung tung ---------- */
@@ -961,7 +1018,7 @@ function wander(){clearTimeout(P.t);if(P.drag)return;if(P.act)endAct();const b=b
   pet.classList.toggle('left',tx<P.x);pet.classList.remove('sitting');pet.classList.add('walking');place(tx,ty,ms);
   P.t=setTimeout(()=>{pet.classList.remove('walking');
     if(Math.random()<(lw?.4:.75))startAct();else{if(!lw&&Math.random()<.4)say(IDLE[Math.floor(Math.random()*IDLE.length)].replace('{n}',S.name),3200);if(lw)pet.classList.add('sitting');P.t=setTimeout(wander,lw?rnd(6000,14000):rnd(1500,3500))}},ms)}
-const ACTS={drink:['Ực ực~ 💧 Mát ghê! {n} uống nước chưa? ({w}/8 ly) — chạm mình để cụng ly nha','Ực… ực… {n} cũng làm một ngụm đi 💧 ({w}/8 ly)'],
+const ACTS={drink:['Ực ực~ 💧 Mát ghê! {n} uống nước chưa? ({w}/{g} ly) — chạm mình để cụng ly nha','Ực… ực… {n} cũng làm một ngụm đi 💧 ({w}/{g} ly)'],
   boba:['Trà sữa trân châu ngon quá 🧋'],read:['Đọc sách xíu nè 📖','Chương này hay ghê!'],phone:['Lướt lướt xem có gì vui 📱'],laptop:['Gõ gõ… deadline dí quá 😵‍💫','Cố lên, sắp xong rồi!'],
   yawn:['Oáppp~ buồn ngủ ghê 🥱'],nap:['Chợp mắt xíu thôi… 💤'],tissue:['Hắt xììì! 🤧 {n} giữ ấm nha'],shiver:['Lạnh run luôn… 🥶 Nhớ mặc ấm nha'],
   teddy:['Ôm gấu một chút cho đỡ buồn 🧸','Không sao đâu, mình ở đây mà'],dance:['Lalala~ nhảy thôi 💃','Hôm nay vui quá đi!'],wave:['Hi {n}! 👋'],
@@ -979,20 +1036,20 @@ function pickAct(){const d=today(),c=d.checkin||{},w={};const add=(k,n)=>w[k]=(w
   if(c.weather==='cold'&&c.body!=='sick')add('shiver',1);
   if(isXmas()){add('cocoa',2);if(c.body!=='sick'){add('gift',1);add('snowman',1)}}
   if(low()){['dance','laptop','wave','phone','gift','snowman'].forEach(k=>{if(w[k])w[k]=k==='wave'||k==='phone'?.4:0});add('nap',2);add('yawn',1);add('read',1)}
-  if(d.water<8&&!isNight()&&Date.now()-lastDrink>40000&&Math.random()<.35)return 'drink';
+  if(d.water<waterGoal()&&!isNight()&&Date.now()-lastDrink>40000&&Math.random()<.35)return 'drink';
   const tot=Object.values(w).reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(const k in w){r-=w[k];if(r<=0)return k}return 'wave'}
 let AC=null;document.addEventListener('pointerdown',()=>{try{if(!AC)AC=new(window.AudioContext||window.webkitAudioContext)();else if(AC.state==='suspended')AC.resume()}catch(e){}},true);
 function gulp(){if(S.sound===false||!AC)return;try{const t0=AC.currentTime;[0,.32,.64].forEach(off=>{const o=AC.createOscillator(),g=AC.createGain(),f=AC.createBiquadFilter();f.type='lowpass';f.frequency.value=900;o.type='sine';o.frequency.setValueAtTime(520,t0+off);o.frequency.exponentialRampToValueAtTime(130,t0+off+.13);g.gain.setValueAtTime(0,t0+off);g.gain.linearRampToValueAtTime(.32,t0+off+.02);g.gain.exponentialRampToValueAtTime(.001,t0+off+.17);o.connect(f);f.connect(g);g.connect(AC.destination);o.start(t0+off);o.stop(t0+off+.2)})}catch(e){}}
 function floatTxt(t,cls,n){for(let i=0;i<n;i++){const h=document.createElement('span');h.className='heart '+cls;h.textContent=t;h.style.left=(cls==='gulp'?48+i*10:14+i*22)+'px';h.style.top=(cls==='gulp'?34:6)+'px';h.style.animationDelay=(i*(cls==='gulp'?.32:.25))+'s';pet.appendChild(h);setTimeout(()=>h.remove(),2400)}}
 function endAct(){P.act=null;pet.className=pet.className.replace(/\bact-\S+/g,'').replace('sitting','').trim();drawChibi()}
 function startAct(a){clearTimeout(P.t);if(P.act)endAct();a=a||pickAct();P.act=a;pet.classList.remove('walking');pet.classList.add('act-'+a);if(a==='nap')pet.classList.add('sitting');drawChibi();
-  const lines=ACTS[a]||[''];say(lines[Math.floor(Math.random()*lines.length)].replace('{n}',S.name).replace('{w}',today().water).replace('{x}',daysToXmas()),a==='drink'?5200:4200);
+  const lines=ACTS[a]||[''];say(lines[Math.floor(Math.random()*lines.length)].replace('{n}',S.name).replace('{w}',today().water).replace('{g}',waterGoal()).replace('{x}',daysToXmas()),a==='drink'?5200:4200);
   if(a==='drink'){lastDrink=Date.now();gulp();floatTxt('ực','gulp',3)}if(a==='dance')floatTxt('♪','note',3);if(a==='tissue')floatTxt('💨','note',1);
   if(a==='breathe')setTimeout(()=>{if(P.act==='breathe')say('…thở ra thật chậm 🍃',2600)},2200);
   const lw=low();P.t=setTimeout(()=>{endAct();P.t=setTimeout(wander,lw?rnd(3000,7000):rnd(800,2200))},a==='drink'?4200:a==='nap'?(lw?11000:6500):lw?rnd(6000,9000):rnd(4000,5600))}
 function poke(){clearTimeout(P.t);pet.classList.remove('walking','sitting');const cur=getComputedStyle(pet).transform;if(cur&&cur!=='none'){const m=new DOMMatrix(cur);place(m.m41,m.m42,0)}
   const svg=pet.querySelector('svg');if(svg){svg.classList.remove('jump');void svg.offsetWidth;svg.classList.add('jump')}
-  if(P.act==='drink'){const d=today();if(d.water<8)d.water++;save();if(tab==='today')render();say(d.water>=8?'Cụng ly! Đủ 8 ly rồi, '+S.name+' giỏi quá 🎉':'Cụng ly! 🥂 +1 ly ('+d.water+'/8)');endAct()}
+  if(P.act==='drink'){const d=today(),G=waterGoal();if(d.water<G)d.water++;save();if(tab==='today')render();if(d.water===G)celebrate(1);say(d.water>=G?'Cụng ly! Đủ '+G+' ly rồi, '+S.name+' giỏi quá 🎉':'Cụng ly! 🥂 +1 ly ('+d.water+'/'+G+')');endAct()}
   else{if(P.act)endAct();say(activeWo()?'Cố lên '+S.name+', thêm một set nữa thôi 💪':focusing()?'Suỵt, mình đang tập trung cùng '+S.name+' nè 🤫 Còn '+mmss(pomoLeft())+' thôi!':PRAISE[Math.floor(Math.random()*PRAISE.length)].replace('{n}',S.name))}
   for(let i=0;i<3;i++){const h=document.createElement('span');h.className='heart';h.textContent=['💖','💗','✨'][i];h.style.left=(18+i*18)+'px';h.style.animationDelay=i*.12+'s';pet.appendChild(h);setTimeout(()=>h.remove(),1800)}
   P.t=setTimeout(wander,2600)}
