@@ -16,7 +16,7 @@ const PRAISE=['Hôm nay {n} giỏi lắm đó!','{n} ơi, uống ngụm nước 
 const HAIRC=['#2B2223','#4A3530','#6B4A3A','#C98B6B','#F4A7B9'];
 
 const LOOKDEF0={face:'auto',blush:'soft',lip:'#E8848D',lash:'natural',freckles:false,eyewear:'none',head:'none',ear:'stud',watch:true,bag:true};
-const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null,gym:{days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},workouts:[],customEx:[],water:{cups:8,ml:250,weight:'',activity:'low',auto:true}});
+const DEF=()=>({name:'bạn',hair:'straight',hairColor:'#2B2223',fav:'pink',autoSwap:true,look:Object.assign({},LOOKDEF0),nightWear:'pj',roam:true,bedTarget:'23:00',days:{},sleeps:[],pendingBed:null,sample:false,v2:true,seasonWear:true,theme:'auto',lastBackup:null,hideInstall:false,createdAt:new Date().toISOString(),tasks:[],taskGroup:'work',pomo:null,pomoLen:25,pomoSound:'none',remindDefault:{task:'cal',bed:'chibi'},nudgeLog:{},nudgeSnooze:null,gym:{days:[],time:'18:00',goal:'muscle',equip:'gym',rest:90,remind:'cal',bell:false},workouts:[],customEx:[],water:{cups:8,ml:250,weight:'',activity:'low',auto:true},habits:[{id:'water',n:'Uống đủ nước',i:'💧',auto:'water'},{id:'move',n:'Vận động',i:'🏃',auto:'gym'},{id:'read',n:'Đọc sách',i:'📖'},{id:'sleep',n:'Ngủ sớm',i:'😴',auto:'sleep'}],routine:[],notes:[]});
 
 /* ---------- Đọc dữ liệu từ máy ---------- */
 let S=DEF();
@@ -38,6 +38,9 @@ function normalize(){
   if(!Array.isArray(S.workouts))S.workouts=[];
   if(!Array.isArray(S.customEx))S.customEx=[];
   S.water=Object.assign({cups:8,ml:250,weight:'',activity:'low',auto:true},S.water||{});
+  if(!Array.isArray(S.habits))S.habits=DEF().habits;
+  if(!Array.isArray(S.routine))S.routine=[];
+  if(!Array.isArray(S.notes))S.notes=[];
   if(!S.v2){const d=DEF();Object.assign(S,{hair:d.hair,hairColor:d.hairColor,fav:d.fav,autoSwap:true,v2:true})}
 }
 const loaded=await CozyDB.loadState();
@@ -118,8 +121,8 @@ function eye(x,t,L,ef){const d=x<100?-1:1,ink='#3E3233',fi=ef||ink,hl2=ef?`<circ
   if(t==='arc')return `<path d="M${x-9} 106Q${x} 96 ${x+9} 106" fill="none" stroke="${ink}" stroke-width="4" stroke-linecap="round"/>`;
   if(t==='down')return `<path d="M${x-8} 106Q${x} 110 ${x+8} 106" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
   if(t==='cool')return `<ellipse cx="${x}" cy="107" rx="6.5" ry="5.5" fill="${fi}"/><circle cx="${x+2.5}" cy="106" r="1.8" fill="#fff"/><path d="M${x-8} 102.5H${x+8}M${x+d*8} 102.5l${d*3} -2" stroke="${ink}" stroke-width="2.8" stroke-linecap="round"/>`;return ''}
-const POSE={magic:'up',cocoa:'mouth',gift:'hold',drink:'mouth',boba:'mouth',yawn:'mouth',tissue:'mouth',read:'hold',phone:'hold',laptop:'hold',teddy:'hold',stretch:'up',dance:'up',wave:'wave'};
-const ACTFACE={magic:'happy',cocoa:'happy',gift:'happy',snowman:'happy',drink:'happy',boba:'smile',read:'look',phone:'look',laptop:'look',yawn:'yawn',nap:'sleepy',tissue:'squeeze',shiver:'sick',teddy:'sad',dance:'happy',wave:'happy',stretch:'squeeze',breathe:'calmclosed'};
+const POSE={sign:'up',magic:'up',cocoa:'mouth',gift:'hold',drink:'mouth',boba:'mouth',yawn:'mouth',tissue:'mouth',read:'hold',phone:'hold',laptop:'hold',teddy:'hold',stretch:'up',dance:'up',wave:'wave'};
+const ACTFACE={sign:'smile',magic:'happy',cocoa:'happy',gift:'happy',snowman:'happy',drink:'happy',boba:'smile',read:'look',phone:'look',laptop:'look',yawn:'yawn',nap:'sleepy',tissue:'squeeze',shiver:'sick',teddy:'sad',dance:'happy',wave:'happy',stretch:'squeeze',breathe:'calmclosed'};
 function armsSvg(pose,AF,SK){const arm=(cx,cy,r)=>`<ellipse cx="${cx}" cy="${cy}" rx="9" ry="19" fill="${AF}" transform="rotate(${r} ${cx} ${cy})"/>`,hand=(x,y)=>`<circle cx="${x}" cy="${y}" r="8.5" fill="${SK}"/>`;
   const L=arm(62,168,14)+hand(57,186),Rt=arm(138,168,-14)+hand(144,184);
   if(pose==='hold')return arm(72,166,-38)+arm(128,166,38)+hand(85,178)+hand(115,178);
@@ -264,7 +267,7 @@ let installEvt=null;addEventListener('beforeinstallprompt',e=>{e.preventDefault(
 function installHow(){return installEvt?`<button class="btn" data-a="install">📲 Cài app</button>`:isIOS?`<p class="muted" style="margin:0">Trong <b>Safari</b>: bấm nút <b>Chia sẻ</b> (ô vuông có mũi tên lên) → <b>Thêm vào MH chính</b> → <b>Thêm</b>.</p>`:`<p class="muted" style="margin:0">Mở menu trình duyệt → <b>Cài đặt ứng dụng</b> / <b>Thêm vào màn hình chính</b>.</p>`}
 function backupDue(){const n=Object.keys(S.days).length+S.sleeps.filter(x=>!x.sample).length;if(!n)return 0;if(!S.lastBackup)return n>=3?-1:0;const d=daysSince(S.lastBackup);return d>=7?d:0}
 
-function viewToday(){const d=today(),c=d.checkin;let h='';
+function viewToday(){const d=today(),c=d.checkin;let h=briefCard();
   if(!standalone()&&!S.hideInstall)h+=`<div class="card"><h2>📲 Cài Cozy Life lên điện thoại <small><button class="chip" data-a="hideInstall" style="min-height:36px;padding:4px 12px" aria-label="Ẩn">✕</button></small></h2><p class="muted" style="margin:0 0 10px">Cài lên màn hình chính để mở như app thật, dùng được khi không có mạng${isIOS?' và để iPhone không tự xóa dữ liệu khi lâu không mở':''}.</p>${installHow()}</div>`;
   const due=backupDue();if(due)h+=`<div class="card"><h2>💾 ${due<0?'Chưa sao lưu lần nào':'Đã '+due+' ngày chưa sao lưu'}</h2><p class="muted" style="margin:0 0 10px">Lưu một bản ra file (iCloud Drive, Google Drive…) để lỡ mất máy hay xóa app vẫn còn.</p><button class="btn full" data-a="export">📤 Sao lưu ngay</button></div>`;
   if(!c){h+=`<div class="card"><h2>Check-in ${new Date().getHours()<12?'buổi sáng':'hôm nay'}</h2><p class="muted" style="margin:0 0 12px">10 giây để Chibi biết hôm nay bạn thế nào.</p><button class="btn full" data-a="checkin">🌤️ Bắt đầu Check-in</button></div>`}
@@ -274,6 +277,7 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
   if(isNight()){h+=`<div class="card night-card"><h2>🌙 Giờ đi ngủ</h2>${d.evening?`<p class="muted" style="margin:0">Bạn đã chúc ngủ ngon lúc ${hm(new Date(S.pendingBed||Date.now()))}. Ngủ ngon nha!</p>`:`<p class="muted" style="margin:0 0 12px">Khép lại ngày hôm nay trong 30 giây rồi đi ngủ thôi.</p><button class="btn full" data-a="evening">😴 Bắt đầu</button>`}</div>`}
   const T3=d.top3.map(top3Slot);
   h+=`<div class="card"><h2>3 việc quan trọng nhất <small>${T3.filter(x=>x.d&&x.t).length}/3</small></h2>${T3.map((x,i)=>`<div class="task ${x.d?'done':''}"><input type="checkbox" data-t="${i}" ${x.d?'checked':''} aria-label="Xong việc ${i+1}">${x.tid?`<button class="t3link" data-topen="${x.tid}">⭐ ${esc(x.t)}</button>`:`<input type="text" data-tt="${i}" value="${esc(x.t)}" placeholder="Việc số ${i+1}…">`}</div>`).join('')}${!T3.some(x=>x.tid)&&S.tasks.some(t=>!t.done)?'<p class="muted" style="margin:6px 0 0">Mẹo: bấm ⭐ ở tab Việc để đưa việc lên đây.</p>':''}</div>`;
+  h+=schedCard();
   const awo=activeWo(),gk=S.gym.days.length&&planFor(new Date());
   if(awo)h+=`<div class="card"><h2>🏋️ Đang tập dở: ${esc(awo.label)}</h2><button class="btn full" data-a="goGym">Tiếp tục buổi tập</button></div>`;
   else if(gk&&!doneWos().some(w=>w.date===dk(new Date())))h+=`<div class="card"><h2>💪 Hôm nay là ngày tập <small>${S.gym.time}</small></h2><p class="muted" style="margin:0 0 10px">${SPLITS[gk][0]}: ${SPLITS[gk][1].map(gName).join(' · ')}</p><button class="btn ghost full" data-a="goGym">Xem gợi ý bài tập</button></div>`;
@@ -282,6 +286,7 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
   const dueL=S.tasks.filter(t=>!t.done&&t.due&&t.due<=dk(new Date())).sort(sortTasks);
   if(dueL.length)h+=`<div class="card"><h2>📋 Việc đến hạn <small>${dueL.length}</small></h2>${dueL.slice(0,5).map(taskRow).join('')}<button class="btn ghost full" data-tab="tasks" style="margin-top:8px">Mở tab Việc</button></div>`;
   const WG=waterGoal(),wx=waterExtra(),ml=S.water.ml;d.waterGoal=WG;d.waterMl=ml;
+  h+=habitsCard();
   h+=`<div class="card"><h2>Uống nước <small>${d.water}/${WG} ly · ${fmtL(d.water*ml)}/${fmtL(WG*ml)} <button class="chip sm gear" data-spgo="water" aria-label="Cài đặt uống nước">⚙️</button></small></h2><div class="cups" style="grid-template-columns:repeat(${Math.min(8,WG)},minmax(0,1fr))">${Array.from({length:WG},(_,i)=>`<button class="cup" data-w="${i}" aria-label="Ly ${i+1}">${cupSvg(i<d.water)}</button>`).join('')}</div>
   ${d.water>WG?`<p class="muted" style="margin:6px 0 0">Đã uống thêm ${d.water-WG} ly ngoài mục tiêu 💙</p>`:''}${d.water>=WG?`<button class="chip sm" data-a="waterPlus" style="margin-top:8px">＋ Uống thêm 1 ly</button>`:''}
   ${wx.ml?`<p class="muted" style="margin:6px 0 0">Hôm nay mục tiêu +${Math.round(wx.ml/ml)} ly vì ${wx.why.join(' và ')}.</p>`:''}<button class="linkbtn" data-a="goWater">📊 Xem lịch sử uống nước</button></div>`;
@@ -289,6 +294,7 @@ function viewToday(){const d=today(),c=d.checkin;let h='';
   h+=`<div class="card"><h2>Lọ Kẹo Niềm Vui <small>${nC} viên</small></h2><div class="jar">${jarSvg(nC)}<div class="jarside">
     <form id="candyF"><input class="inp" id="candy" placeholder="Một niềm vui nhỏ hôm nay…" maxlength="120"><button class="btn" style="margin-top:8px">+ Thả kẹo</button></form>
     ${d.candies.length?`<p class="muted" style="margin:8px 0 0">Hôm nay: ${d.candies.map(esc).join(' · ')}</p>`:''}</div></div></div>`;
+  h+=notesCard();
   return h}
 
 let htab='gym';
@@ -469,9 +475,13 @@ function bellAction(kind){const t=taskById(editId);if(!t)return;const L=lvl(t);
 let nudgeCur=null;
 function lazyDay(){const c=today().checkin;return !!c&&(c.body==='sick'||c.energy<=2)}
 function showNudge(n){nudgeCur=n;const el=$('#nudge');
-  el.innerHTML=`<p>${n.text}</p><div class="row">${n.open?'<button class="btn" data-nudge="open">Xem</button>':''}<button class="btn ghost" data-nudge="snooze">Để sau</button>${n.stop?'<button class="btn ghost" data-nudge="stop">Đừng nhắc việc này nữa</button>':''}<button class="xbtn" data-nudge="close" aria-label="Đóng">✕</button></div>`;
-  el.classList.remove('hide');if(n.say)say(n.say,5000);if(n.act&&!P.act)startAct(n.act)}
-function hideNudge(){nudgeCur=null;$('#nudge').classList.add('hide')}
+  el.innerHTML=`<div class="board"><span class="nail l"></span><span class="nail r"></span><button class="xbtn bx" data-nudge="close" aria-label="Đóng">✕</button><p class="bt">🧸 Chibi nhắc nè</p><p>${n.text}</p><div class="row">${n.open?'<button class="btn" data-nudge="open">Xem</button>':''}<button class="btn ghost" data-nudge="snooze">Để sau</button>${n.stop?'<button class="btn ghost" data-nudge="stop">Đừng nhắc việc này nữa</button>':''}</div></div><i class="pole a"></i><i class="pole b"></i>`;
+  clearTimeout(P.t);if(P.act)endAct();const b=bounds(),tx=Math.round(Math.min(b.maxX,Math.max(b.minX,innerWidth/2-PW/2))),ty=b.maxY,ms=reduce?0:Math.max(350,Math.hypot(tx-P.x,ty-P.y)/170*1000);
+  pet.classList.toggle('left',tx<P.x);pet.classList.remove('sitting');pet.classList.add('walking');place(tx,ty,ms);$('#bubble').classList.remove('on');
+  setTimeout(()=>{if(nudgeCur!==n)return;pet.classList.remove('walking','left');P.act='sign';drawChibi();layoutBoard();el.classList.remove('hide','hiding');void el.offsetWidth;el.classList.add('show')},ms)}
+function hideNudge(){const el=$('#nudge'),was=nudgeCur;nudgeCur=null;el.classList.remove('show');
+  if(was&&!reduce){el.classList.add('hiding');setTimeout(()=>{if(!nudgeCur){el.classList.add('hide');el.classList.remove('hiding')}},320)}else el.classList.add('hide');
+  if(P.act==='sign'){P.act=null;drawChibi();P.t=setTimeout(wander,900)}}
 function nudgeAction(k){const n=nudgeCur;if(!n)return;hideNudge();
   if(k==='open'){if(n.taskId){tab='tasks';render();taskSheet(n.taskId)}else if(n.tab){tab=n.tab;if(n.after)n.after();render()}}
   else if(k==='snooze'){S.nudgeSnooze=Date.now()+60*6e4;say('Ok, 1 tiếng nữa mình nhắc lại nha',2500)}
@@ -717,6 +727,70 @@ function woHistSheet(id){const w=S.workouts.find(x=>x.id===id);if(!w)return;cons
   <div class="row" style="margin-top:14px"><button class="btn ghost" data-a="closeSheet">Đóng</button><button class="btn ghost danger" data-wohdel="${w.id}">Xóa buổi này</button></div>`)}
 const dnd=()=>focusing()||!!activeWo();
 
+/* ---------- 🌱 Thói quen ---------- */
+const HICONS=['📖','🧘','🏃','🥗','🧴','✍️','🎹','🌿','💊','🦷','🙏','📵','🚶','🍎','☀️','🛏️'];
+const HDEF=()=>DEF().habits;
+const HAUTO={water:'Tự tick khi uống đủ nước',gym:'Tự tick khi hoàn thành buổi tập',sleep:'Tự tick khi bấm "Đi ngủ" trước giờ mục tiêu'};
+function habitDone(h,k){const d=S.days[k];if(!d)return false;if((d.hb||{})[h.id])return true;
+  if(h.auto==='water'){const w=dayWater(k);return w.n>0&&w.n>=w.goal}
+  if(h.auto==='gym')return S.workouts.some(w=>w.end&&w.date===k);
+  if(h.auto==='sleep')return !!d.sleptEarly;return false}
+function habitStreak(h){const x=new Date();if(!habitDone(h,dk(x)))x.setDate(x.getDate()-1);let n=0;for(let i=0;i<1000;i++){if(habitDone(h,dk(x))){n++;x.setDate(x.getDate()-1)}else break}return n}
+function habitsCard(){if(!S.habits.length)return '';const td=dk(new Date());const done=S.habits.filter(h=>habitDone(h,td)).length;
+  return `<div class="card"><h2>🌱 Thói quen <small>${done}/${S.habits.length} <button class="chip sm gear" data-spgo="habits" aria-label="Sửa thói quen">⚙️</button></small></h2><div class="hgrid">${S.habits.map(h=>{const on=habitDone(h,td),st=habitStreak(h);
+    return `<button class="habit ${on?'on':''}" data-hb="${h.id}" aria-pressed="${on}"><span class="hi">${h.i}</span><span class="hn">${esc(h.n)}</span><span class="hs">${st?'🔥 '+st+' ngày':on?'Hôm nay ✓':'Chưa'}</span></button>`}).join('')}</div></div>`}
+function toggleHabit(id){const h=S.habits.find(x=>x.id===id);if(!h)return;const d=today(),k=dk(new Date());d.hb=d.hb||{};
+  if(habitDone(h,k)&&!d.hb[id]){say(h.auto==='water'?'Đã uống đủ nước nên tự tick rồi nè 💧':h.auto==='gym'?'Hôm nay tập rồi nên tự tick đó 💪':'Tối qua ngủ sớm nên tự tick rồi 😴',3000);return}
+  d.hb[id]=!d.hb[id];if(!d.hb[id])delete d.hb[id];render();
+  if(habitDone(h,k)){const st=habitStreak(h);if(S.habits.every(x=>habitDone(x,k)))celebrate(1);say(st>=7&&st%7===0?'Chuỗi '+st+' ngày! '+S.name+' kiên trì quá 🔥':['Giỏi lắm! ✅','Thêm một ngày giữ thói quen 🌱','Tuyệt vời '+S.name+' ✨'][Math.floor(Math.random()*3)],3000)}}
+function habitsPage(){return `<div class="card"><h2>🌱 Thói quen hằng ngày</h2><p class="muted" style="margin:0 0 6px">Đổi tên, xóa, hoặc thêm thói quen bạn muốn giữ. Thói quen có ✨ được app tự tick.</p>
+  ${S.habits.map(h=>`<div class="hedit"><span class="hi">${h.i}</span><input class="inp" data-hname="${h.id}" value="${esc(h.n)}" maxlength="30" aria-label="Tên thói quen"><button class="xbtn" data-hdel="${h.id}" aria-label="Xóa">🗑️</button></div>${h.auto?`<p class="muted" style="margin:-2px 0 6px 52px;font-size:12px">✨ ${HAUTO[h.auto]}</p>`:''}`).join('')}
+  <h3 class="wh">Thêm thói quen</h3><div class="row">${HICONS.map(i=>`<button class="chip sm" data-hicon="${i}" aria-pressed="${(F.hicon||'📖')===i}">${i}</button>`).join('')}</div>
+  <form id="habitF" class="addrow" style="margin-top:8px"><input class="inp" id="hNew" placeholder="vd: Thiền 5 phút" maxlength="30" autocomplete="off"><button class="btn" aria-label="Thêm thói quen">＋</button></form>
+  ${S.habits.some(h=>h.auto)&&HDEF().every(x=>S.habits.some(h=>h.id===x.id))?'':'<button class="chip sm" data-a="hReset" style="margin-top:10px">Khôi phục thói quen mặc định</button>'}</div>`}
+
+/* ---------- 🕒 Thời gian biểu ---------- */
+const BLOCKS=[['morning','🌅 Sáng',4,11],['noon','☀️ Trưa',11,14],['after','🌤️ Chiều',14,18],['eve','🌙 Tối',18,28]];
+const blockOf=t=>{let h=+t.split(':')[0];if(h<4)h+=24;return(BLOCKS.find(b=>h>=b[2]&&h<b[3])||BLOCKS[0])[0]};
+function schedItems(){const d=today(),td=dk(new Date()),L=[];
+  S.routine.forEach(r=>L.push({kind:'r',id:r.id,t:r.t,title:r.title,done:!!(d.rdone||{})[r.id],rep:1}));
+  (d.sched||[]).forEach(s=>L.push({kind:'s',id:s.id,t:s.t,title:s.title,done:!!s.done}));
+  S.tasks.filter(t=>t.due===td&&t.dueTime).forEach(t=>L.push({kind:'t',id:t.id,t:t.dueTime,title:'📋 '+t.title,done:!!t.done}));
+  if(S.gym.days.length&&planFor(new Date()))L.push({kind:'g',id:'gym',t:S.gym.time,title:'🏋️ Tập '+SPLITS[planFor(new Date())][0],done:doneWos().some(w=>w.date===td)});
+  L.push({kind:'b',id:'bed',t:S.bedTarget,title:'😴 Đi ngủ',done:!!d.evening});
+  const key=t=>{let[h,m]=t.split(':').map(Number);if(h<4)h+=24;return h*60+m};return L.sort((a,b)=>key(a.t)-key(b.t))}
+function schedCard(){const L=schedItems(),now=new Date(),cur=blockOf(hm(now));
+  return `<div class="card"><h2>🕒 Thời gian biểu <small><button class="chip sm gear" data-a="schedAdd" aria-label="Thêm vào thời gian biểu">＋ Thêm</button></small></h2>
+  ${BLOCKS.map(([k,n])=>{const I=L.filter(x=>blockOf(x.t)===k);if(!I.length&&k!==cur)return '';
+   return `<div class="blk ${k===cur?'now':''}"><h3>${n}${k===cur?' <i>đang là buổi này</i>':''}</h3>${I.length?I.map(x=>`<div class="sitem ${x.done?'done':''}"><input type="checkbox" data-sdone="${x.kind}:${x.id}" ${x.done?'checked':''} aria-label="Xong: ${esc(x.title)}"><button class="smain" data-sopen="${x.kind}:${x.id}"><b>${x.t}</b><span>${esc(x.title)}</span>${x.rep?'<i>🔁</i>':''}</button></div>`).join(''):'<p class="muted" style="margin:2px 0 4px">Chưa có gì. Bấm ＋ Thêm nhé.</p>'}</div>`}).join('')}</div>`}
+function schedSheet(kind,id){const isR=kind==='r',it=isR?S.routine.find(r=>r.id===id):kind==='s'?(today().sched||[]).find(s=>s.id===id):null;
+  F={rep:isR};
+  openSheet(`<h2>${it?'✏️ Sửa':'＋ Thêm vào thời gian biểu'}</h2>
+  <div class="q"><h3>Giờ</h3><input class="inp" type="time" id="sT" value="${it?it.t:hm(new Date(Math.ceil(Date.now()/18e5)*18e5))}" style="max-width:150px"></div>
+  <div class="q"><h3>Việc gì?</h3><input class="inp" id="sTitle" value="${it?esc(it.title):''}" maxlength="60" placeholder="vd: Ăn trưa, Học tiếng Anh"></div>
+  <div class="q"><div class="row"><button class="chip" data-f="rep" data-v="" aria-pressed="${!F.rep}">Chỉ hôm nay</button><button class="chip" data-f="rep" data-v="1" aria-pressed="${!!F.rep}">🔁 Lặp lại mỗi ngày</button></div></div>
+  <div class="row" style="margin-top:16px"><button class="btn" data-a="schedSave" data-k="${it?kind+':'+id:''}">Lưu</button>${it?`<button class="btn ghost danger" data-a="schedDel" data-k="${kind}:${id}">Xóa</button>`:''}</div>`)}
+
+/* ---------- 📰 Bản tin đầu ngày ---------- */
+const QUOTES=['Có công mài sắt, có ngày nên kim.','Kiến tha lâu cũng đầy tổ.','Nước chảy đá mòn.','Có chí thì nên.','Chớ thấy sóng cả mà ngã tay chèo.','Đi một ngày đàng, học một sàng khôn.','Một cây làm chẳng nên non, ba cây chụm lại nên hòn núi cao.','Thất bại là mẹ thành công.','Ăn quả nhớ kẻ trồng cây.','Muốn sang thì bắc cầu kiều, muốn con hay chữ thì yêu lấy thầy.',
+  'Hôm nay chỉ cần tốt hơn hôm qua một chút thôi.','Nghỉ ngơi cũng là một phần của cố gắng.','Từng bước nhỏ vẫn là đang tiến về phía trước.','Bạn không cần hoàn hảo, chỉ cần bắt đầu.','Uống một ngụm nước, hít một hơi thật sâu, rồi mình làm tiếp nhé.','Dịu dàng với bản thân như cách bạn dịu dàng với người khác.','Một ngày bình yên cũng là một ngày tuyệt vời.','Việc khó nhất là bắt đầu, phần còn lại sẽ nhẹ dần.','Cảm xúc nào cũng được chào đón, kể cả những ngày không vui.','Hãy tự hào vì bạn đã đi được tới đây.',
+  'Làm xong một việc nhỏ còn hơn nghĩ mãi về một việc lớn.','Cơ thể khỏe thì tâm trí mới vui.','Hôm nay hãy cho mình một khoảnh khắc thật chậm.','Không sao nếu hôm nay bạn đi chậm, miễn là đừng bỏ cuộc.','Một nụ cười nhỏ cũng đủ làm sáng cả ngày.','Ngủ đủ giấc là món quà bạn tặng cho chính mình ngày mai.','Mỗi viên kẹo trong lọ là một niềm vui bạn đã nhận ra.','Bạn đang làm tốt hơn bạn nghĩ đấy.','Ưu tiên ba việc quan trọng, những việc khác để sau cũng được.','Biết ơn những điều nhỏ bé, rồi điều lớn sẽ đến.'];
+function briefCard(){const now=new Date(),td=dk(now),day=Math.floor(now/864e5);if(isNight())return '';
+  const q=QUOTES[day%QUOTES.length],nT=S.tasks.filter(t=>!t.done&&t.due&&t.due<=td).length,gk=S.gym.days.length&&planFor(now),T3=today().top3.map(top3Slot).filter(x=>x.t).length;
+  const chips=[nT?`📋 ${nT} việc đến hạn`:'📋 Không có việc gấp',gk?`🏋️ Tập ${SPLITS[gk][0]} lúc ${S.gym.time}`:(S.gym.days.length?'🌿 Nghỉ tập':''),`💧 ${waterGoal()} ly nước`,T3?`⭐ Top 3: ${T3}/3 đã chọn`:''].filter(Boolean);
+  return `<div class="card brief"><p class="quote">“${q}”</p><div class="bchips">${chips.map(c=>`<span>${c}</span>`).join('')}</div></div>`}
+
+/* ---------- 📝 Ghi chú nhanh ---------- */
+function noteRow(n){const d=new Date(n.at);return `<div class="nrow"><span class="ntext">${esc(n.t)}<i>${pad(d.getDate())}/${pad(d.getMonth()+1)} ${hm(d)}</i></span><button class="xbtn" data-n2t="${n.id}" aria-label="Chuyển thành việc" title="Chuyển thành việc">📋</button><button class="xbtn" data-ndel="${n.id}" aria-label="Xóa ghi chú">🗑️</button></div>`}
+function notesCard(){const L=S.notes;return `<div class="card"><h2>📝 Ghi chú nhanh <small>${L.length?L.length+' ghi chú':''}</small></h2>
+  <form id="noteF" class="addrow"><input class="inp" id="nNew" placeholder="Ý tưởng chợt nảy ra…" maxlength="300" autocomplete="off" enterkeyhint="done"><button class="btn" aria-label="Lưu ghi chú">＋</button></form>
+  ${L.slice(0,3).map(noteRow).join('')}${L.length>3?`<button class="linkbtn" data-a="notesAll">Xem tất cả ${L.length} ghi chú</button>`:''}
+  ${L.length?'<p class="muted" style="margin:6px 0 0;font-size:12px">📋 = chuyển thành việc trong tab Việc</p>':''}</div>`}
+
+function notesAllSheet(){openSheet(`<h2>📝 Tất cả ghi chú</h2>${S.notes.map(noteRow).join('')||'<p class="muted">Chưa có ghi chú nào.</p>'}<button class="btn full" style="margin-top:14px" data-a="closeSheet">Đóng</button>`)}
+/* ---------- 🪧 Chibi giơ bảng nhắc ---------- */
+function layoutBoard(){const el=$('#nudge');if(!el)return;el.style.bottom=Math.max(90,innerHeight-(P.y+PH*.49)+40)+'px'}
+
 function viewSoon(t){return `<div class="card"><h2>${t}</h2><p class="muted" style="margin:0">Phần này sẽ có ở bước tiếp theo.</p></div>`}
 
 let wtab='outfit',snaps=null,setPage=null;
@@ -788,6 +862,7 @@ function viewSettings(){const st=state(),L=S.look;
   ${r?`<div class="okline" style="margin-top:12px"><span>✨</span><span>Gợi ý: khoảng <b>${fmtL(r.lo)} – ${fmtL(r.hi)}</b> mỗi ngày ≈ <b>${r.cups} ly ${w.ml} ml</b></span></div><button class="btn" data-a="wUse" ${r.cups===w.cups?'disabled':''}>${r.cups===w.cups?'Đang dùng mức gợi ý ✓':'Dùng gợi ý này'}</button>`:'<p class="muted">Nhập cân nặng để xem gợi ý.</p>'}
   <p class="muted" style="margin:12px 0 0">Tham khảo: Cơ quan An toàn Thực phẩm châu Âu (EFSA) khuyến nghị tổng lượng nước khoảng 2,0 lít/ngày cho nữ và 2,5 lít cho nam, tính cả nước từ thức ăn. Con số "8 ly mỗi ngày" không có cơ sở khoa học. Cơn khát và màu nước tiểu (vàng nhạt là ổn) cũng là cách theo dõi tốt.</p>
   <div class="tip">⚠️ Nếu bạn có bệnh tim, thận, gan, đang mang thai, hoặc được bác sĩ dặn hạn chế/tăng lượng nước, hãy theo chỉ định của bác sĩ.</div></div>`},
+   habits:()=>habitsPage(),
    about:()=>`  <div class="card"><h2>💝 Giới thiệu & Ghi công</h2><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
   <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Everkinetic</b> – hình tư thế bài tập · Greg Priday & cộng đồng (github.com/everkinetic/data) · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.vi" target="_blank" rel="noopener">CC BY-SA 4.0</a> · chỉ nén dung lượng, không sửa nội dung hình</li><li><b>body-highlighter</b> – hình cơ thể tô nhóm cơ · GV79 & alahaxe · giấy phép MIT</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></div>
   <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>
@@ -796,13 +871,13 @@ function viewSettings(){const st=state(),L=S.look;
   return settingsHub()}
 function settingsHub(){const bd=backupDue(),ds=S.lastBackup?daysSince(S.lastBackup):null;
   const G=[['Chibi',[['wardrobe','👗','Phòng thay đồ','Trang phục, đồ ngủ, phụ kiện, trang điểm, tóc'],['me','🧸','Bạn & Chibi','Tên: '+esc(S.name)+' · ngủ lúc '+S.bedTarget+' · '+(S.roam===false?'ngồi yên':'chạy lung tung')],['season','🎨','Giao diện theo mùa',{auto:'Tự động',xmas:'Luôn bật Giáng sinh',none:'Tắt'}[S.theme||'auto']]]],
-    ['Sức khỏe',[['water','💧','Uống nước',S.water.cups+' ly × '+S.water.ml+' ml = '+fmtL(S.water.cups*S.water.ml)+' mỗi ngày']]],
+    ['Sức khỏe',[['habits','🌱','Thói quen',S.habits.map(h=>h.i).join(' ')+' · '+S.habits.length+' thói quen'],['water','💧','Uống nước',S.water.cups+' ly × '+S.water.ml+' ml = '+fmtL(S.water.cups*S.water.ml)+' mỗi ngày']]],
     ['Ứng dụng',[['remind','🔔','Nhắc nhở','Việc có hạn: '+lvInfo(S.remindDefault.task)[1]+' '+lvInfo(S.remindDefault.task)[2]+' · Giờ ngủ: '+lvInfo(S.remindDefault.bed)[1]],['data','💾','Dữ liệu & sao lưu',(S.lastBackup?'Sao lưu lần cuối: '+(ds?ds+' ngày trước':'hôm nay'):'Chưa sao lưu lần nào'),bd],...(standalone()?[]:[['install','📲','Cài lên màn hình chính','Mở như app, dùng được khi không có mạng']])]],
     ['Khác',[['demo','🧪','Xem thử trạng thái','Giờ đi ngủ, các hoạt động của Chibi'],['about','💝','Giới thiệu & Ghi công','Thư viện mã nguồn mở và giấy phép']]]];
   return G.map(([t,rows])=>`<div class="card setgroup"><h3 class="sgh">${t}</h3>${rows.map(([k,i,n,sub,warn])=>`<button class="setrow2" data-sp="${k}"><span class="si">${i}</span><span class="stx"><b>${n}</b><i class="${warn?'warnt':''}">${warn?'⚠️ ':''}${sub}</i></span><span class="chev">›</span></button>`).join('')}</div>`).join('')
   +`<p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.18-6';
+const APPVER='2026.11.18-7';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -848,7 +923,7 @@ function saveCheckin(){const d=today();const w=$('#wakeIn').value;
     if((wk-bed)/36e5<16){S.sleeps.push({bed:bed.toISOString(),wake:wk.toISOString(),q:F.q})}}
   S.pendingBed=null;closeSheet();tab='today';render();
   const c=d.checkin;say(c.body==='sick'?'Thương '+S.name+' quá, hôm nay nghỉ ngơi nhiều nha 🤒':c.mood==='happy'?'Yayy, một ngày tuyệt vời đang chờ '+S.name+'!':c.mood==='stress'?'Không sao, mình cùng làm từng chút một nhé 🔥':'Cảm ơn '+S.name+' đã check-in 💛')}
-function goSleep(){const d=today();d.evening={mood:F.emood,line:($('#line').value||'').trim()};S.pendingBed=new Date().toISOString();closeSheet();flush();
+function goSleep(){const d=today();d.evening={mood:F.emood,line:($('#line').value||'').trim()};{const n=new Date(),[bh,bm]=S.bedTarget.split(':').map(Number);const nm=n.getHours()*60+n.getMinutes();if(n.getHours()>=12&&nm<=bh*60+bm)d.sleptEarly=true;else delete d.sleptEarly}S.pendingBed=new Date().toISOString();closeSheet();flush();
   clearTimeout(P.t);$('#chibiSleep').innerHTML=chibi({mood:'sleep',outfit:'pj',sleep:true});$('#gn').textContent='Chúc '+S.name+' ngủ ngon 🌙';$('#gnTime').textContent='Đã ghi giờ đi ngủ: '+hm(new Date());$('#sleepcover').classList.add('on')}
 
 /* ---------- Sao lưu & khôi phục ---------- */
@@ -900,6 +975,12 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.f){e.preventDefault();F[t.dataset.f]=isNaN(t.dataset.v)?t.dataset.v:+t.dataset.v;t.parentNode.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
   if(t.dataset.star){F.q=+t.dataset.star;t.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.star<=F.q));return}
   if(t.dataset.w!==undefined){const d=today(),i=+t.dataset.w,G=waterGoal(),was=d.water;d.water=d.water===i+1?i:i+1;render();if(d.water>=G&&was<G)celebrate(1);say(d.water>=G?'Đủ '+G+' ly rồi! '+S.name+' giỏi quá 🎉':'Thêm 1 ly nữa nè 💧 ('+d.water+'/'+G+')');return}
+  if(t.dataset.hb){toggleHabit(t.dataset.hb);return}
+  if(t.dataset.hdel){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Xóa?';return}S.habits=S.habits.filter(h=>h.id!==t.dataset.hdel);render();return}
+  if(t.dataset.hicon){F.hicon=t.dataset.hicon;t.parentNode.querySelectorAll('button').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
+  if(t.dataset.sopen){const[k,id]=t.dataset.sopen.split(':');if(k==='r'||k==='s')schedSheet(k,id);else if(k==='t')taskSheet(id);else if(k==='g'){tab='health';htab='gym';render();scrollTo({top:0})}else if(k==='b'){if(isNight())eveningSheet();else say('Đến giờ ngủ, mình sẽ nhắc '+S.name+' khép lại ngày nha 🌙',3000)}return}
+  if(t.dataset.n2t){const n=S.notes.find(x=>x.id===t.dataset.n2t);if(!n)return;S.tasks.push({id:uid(),title:n.t.slice(0,140),group:S.taskGroup,done:false,doneAt:null,createdAt:new Date().toISOString(),due:null,dueTime:'',link:'',note:n.t.length>140?n.t:'',subs:[]});S.notes=S.notes.filter(x=>x.id!==n.id);render();if($('#sheetbg').classList.contains('on'))notesAllSheet();say('Đã chuyển thành việc trong '+gInfo(S.taskGroup)[2]+' 📋',3000);return}
+  if(t.dataset.ndel){if(!t.dataset.sure){t.dataset.sure='1';t.textContent='Xóa?';return}S.notes=S.notes.filter(x=>x.id!==t.dataset.ndel);render();if($('#sheetbg').classList.contains('on'))notesAllSheet();return}
   if(t.dataset.wday){waterDaySheet(t.dataset.wday);return}
   if(t.dataset.wdc){const k=t.dataset.k;if(k>dk(new Date()))return;const d=S.days[k]||(k===dk(new Date())?today():(S.days[k]={top3:[{t:'',d:false},{t:'',d:false},{t:'',d:false}],water:0,candies:[],checkin:null,evening:null}));
     if(!d.waterGoal&&k!==dk(new Date())){d.waterGoal=S.water.cups;d.waterMl=S.water.ml}
@@ -962,6 +1043,13 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.psnd){S.pomoSound=t.dataset.psnd;if(focusing())startNoise();render();return}
   if(t.dataset.pomotask){pomoState().taskId=t.dataset.pomotask;closeSheet();editId=null;tab='tasks';render();const pc=document.querySelector('.pomo');pc&&pc.scrollIntoView({behavior:'smooth',block:'center'});say('Chọn xong rồi, bấm Bắt đầu nhé 🍅',3000);return}
   const a=t.dataset.a;if(!a)return;
+  if(a==='hReset'){HDEF().forEach(x=>{if(!S.habits.some(h=>h.id===x.id))S.habits.push(x)});render();return}
+  if(a==='schedAdd'){schedSheet();return}
+  if(a==='schedSave'){const ti=($('#sTitle').value||'').trim(),tm=$('#sT').value;if(!ti||!tm){(!ti?$('#sTitle'):$('#sT')).focus();return}
+    if(t.dataset.k){const[k,id]=t.dataset.k.split(':');if(k==='r')S.routine=S.routine.filter(r=>r.id!==id);else today().sched=(today().sched||[]).filter(x=>x.id!==id)}
+    if(F.rep)S.routine.push({id:uid(),t:tm,title:ti});else(today().sched=today().sched||[]).push({id:uid(),t:tm,title:ti,done:false});closeSheet();render();say('Đã thêm vào thời gian biểu 🕒',2500);return}
+  if(a==='schedDel'){const[k,id]=t.dataset.k.split(':');if(!t.dataset.sure){t.dataset.sure='1';t.textContent=k==='r'?'Xóa khỏi mọi ngày?':'Bấm lần nữa để xóa';return}if(k==='r')S.routine=S.routine.filter(r=>r.id!==id);else today().sched=(today().sched||[]).filter(x=>x.id!==id);closeSheet();render();return}
+  if(a==='notesAll'){notesAllSheet();return}
   if(a==='goWater'){tab='health';htab='water';render();scrollTo({top:0});return}
   if(a==='waterPlus'){today().water++;render();say('Thêm 1 ly 💧 ('+today().water+' ly hôm nay)');return}
   if(a==='wUse'){const r=waterRec();if(r){S.water.cups=Math.min(20,r.cups);render();say('Mục tiêu mới: '+S.water.cups+' ly mỗi ngày 💧')}return}
@@ -1025,6 +1113,13 @@ document.addEventListener('change',e=>{const t=e.target;
     if(t.dataset.sub)sb.d=t.checked;else{const v=t.value.trim();if(v)sb.t=v;else t.value=sb.t}
     $('#subs').innerHTML=subsHtml(tk);render();return}
   if(t.id==='nm'){S.name=t.value.trim()||'bạn';render();return}
+  if(t.dataset.sdone){const[k,id]=t.dataset.sdone.split(':'),d=today();
+    if(k==='r'){d.rdone=d.rdone||{};if(t.checked)d.rdone[id]=true;else delete d.rdone[id]}
+    else if(k==='s'){const x=(d.sched||[]).find(z=>z.id===id);if(x)x.done=t.checked}
+    else if(k==='t'){const tk=taskById(id);if(tk)setDone(tk,t.checked)}
+    else{t.checked=!t.checked;if(k==='g'){tab='health';htab='gym';render();scrollTo({top:0})}else if(isNight())eveningSheet();else say('Đến giờ ngủ hãy bấm "Đi ngủ" nhé 🌙',3000);return}
+    render();if(t.checked)say(['Xong! ✅','Đúng giờ ghê 🕒','Tuyệt vời '+S.name+' ✨'][Math.floor(Math.random()*3)],2500);return}
+  if(t.dataset.hname){const h=S.habits.find(x=>x.id===t.dataset.hname),v=t.value.trim();if(h){if(v)h.n=v;else t.value=h.n}save();return}
   if(t.id==='wkg'){S.water.weight=t.value;render();return}
   if(t.id==='gTime'&&t.value){S.gym.time=t.value;gymBellChanged();render();return}
   if(t.dataset.wr||t.dataset.wk){const w=activeWo();if(!w)return;const[i,j]=(t.dataset.wr||t.dataset.wk).split(':').map(Number),st=w.items[i]&&w.items[i].sets[j];if(!st)return;const v=t.value===''?'':Math.max(0,+t.value);if(t.dataset.wr)st.r=v;else st.kg=v;save();return}
@@ -1033,6 +1128,8 @@ document.addEventListener('change',e=>{const t=e.target;
 document.addEventListener('input',e=>{if(e.target.id==='libQ'){lib.q=e.target.value;$('#libList').innerHTML=libListHtml()}});
 document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='impw'){e.preventDefault();const b=document.querySelector('[data-a=impw]');b&&b.click()}});
 document.addEventListener('submit',e=>{
+  if(e.target.id==='habitF'){e.preventDefault();const v=$('#hNew').value.trim();if(!v)return;S.habits.push({id:'h_'+uid(),n:v,i:F.hicon||'📖'});$('#hNew').value='';render();say('Thêm thói quen "'+v+'" 🌱',2500);return}
+  if(e.target.id==='noteF'){e.preventDefault();const v=$('#nNew').value.trim();if(!v)return;S.notes.unshift({id:uid(),t:v,at:new Date().toISOString()});$('#nNew').value='';render();$('#nNew').focus();say('Ghi lại rồi nè 📝',2000);return}
   if(e.target.id==='taskF'){e.preventDefault();const v=$('#tnew').value.trim();if(!v)return;S.tasks.push({id:uid(),title:v,group:S.taskGroup,done:false,doneAt:null,createdAt:new Date().toISOString(),due:null,dueTime:'',link:'',note:'',subs:[]});$('#tnew').value='';render();$('#tnew').focus();say('Đã thêm vào '+gInfo(S.taskGroup)[2]+' 📋',2500);return}
   if(e.target.id==='subF'){e.preventDefault();const tk=taskById(editId),v=$('#subNew').value.trim();if(!tk||!v)return;(tk.subs=tk.subs||[]).push({id:uid(),t:v,d:false});$('#subNew').value='';$('#subs').innerHTML=subsHtml(tk);render();$('#subNew').focus();return}
   if(e.target.id!=='candyF')return;e.preventDefault();const v=$('#candy').value.trim();if(!v||candyBusy)return;candyDrop(v)});
@@ -1046,7 +1143,7 @@ function bounds(){const nav=document.querySelector('nav').offsetHeight;return{mi
 function place(x,y,ms){pet.style.transition=ms?`transform ${ms}ms linear`:'none';pet.style.transform=`translate(${x}px,${y}px)`;P.x=x;P.y=y}
 const IDLE=['Lalala~ 🎶','{n} uống nước chưa đó?','Hôm nay mình đi dạo nè!','Hihi 🤭','Có cần mình giúp gì không?','Nhớ vươn vai một chút nha 🙆'];
 function low(){const c=today().checkin||{};return isNight()||c.mood==='sleepy'||c.body==='sick'||c.body==='tired'||(c.energy&&c.energy<=2)}
-function wander(){clearTimeout(P.t);if(P.drag)return;if(P.act)endAct();const b=bounds();
+function wander(){clearTimeout(P.t);if(P.drag||nudgeCur)return;if(P.act)endAct();const b=bounds();
   if(dnd()){pet.classList.remove('walking','left');pet.classList.add('sitting');place(b.maxX-4,b.maxY,700);drawChibi();return}if(reduce||S.roam===false){pet.classList.remove('walking');place(b.maxX-6,b.maxY,600);return}let tx,ty;
   const lw=low();if(lw){ty=Math.random()<.85?b.maxY:rnd(b.maxY-160,b.maxY);tx=Math.min(b.maxX,Math.max(b.minX,P.x+rnd(-110,110)))}else if(Math.random()<.55){ty=b.maxY;tx=rnd(b.minX,b.maxX)}else{tx=rnd(b.minX,b.maxX);ty=rnd(b.minY,b.maxY)}
   const ms=Math.max(400,Math.hypot(tx-P.x,ty-P.y)/(lw?22:75)*1000);
@@ -1094,7 +1191,7 @@ pet.addEventListener('pointermove',e=>{if(!P.down)return;if(!P.drag&&Math.hypot(
 pet.addEventListener('pointerup',()=>{const was=P.drag;P.down=null;P.drag=false;pet.classList.remove('held');if(was){say('Hihi, chỗ này cũng được nè!',2500);P.t=setTimeout(wander,2500)}else poke()});
 pet.addEventListener('pointercancel',()=>{P.down=null;P.drag=false;pet.classList.remove('held');P.t=setTimeout(wander,1500)});
 pet.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();poke()}});
-addEventListener('resize',()=>{const b=bounds();place(Math.min(P.x,b.maxX),Math.min(P.y,b.maxY),0)});
+addEventListener('resize',()=>{const b=bounds();place(Math.min(P.x,b.maxX),Math.min(P.y,b.maxY),0);if(nudgeCur)layoutBoard()});
 {const b=bounds();place(b.maxX-10,b.maxY,0)}
 $('#wake').addEventListener('click',()=>{$('#sleepcover').classList.remove('on');demoNight=false;render();wander();checkinSheet();say('Chào buổi sáng '+S.name+'! Đêm qua ngủ ngon không?')});
 
