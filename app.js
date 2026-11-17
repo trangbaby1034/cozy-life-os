@@ -653,7 +653,7 @@ const dnd=()=>focusing()||!!activeWo();
 
 function viewSoon(t){return `<div class="card"><h2>${t}</h2><p class="muted" style="margin:0">Phần này sẽ có ở bước tiếp theo.</p></div>`}
 
-let wtab='outfit',snaps=null;
+let wtab='outfit',snaps=null,setPage=null;
 function dataCard(){
   const pst=CozyDB.fallback?['⚠️','Trình duyệt này không cho lưu kiểu bền vững (có thể đang ở chế độ ẩn danh). Hãy mở bằng trình duyệt thường.']
     :persistState==='yes'?['✅','Đã được bảo vệ: trình duyệt sẽ không tự dọn dữ liệu khi máy đầy bộ nhớ.']
@@ -682,31 +682,48 @@ function viewSettings(){const st=state(),L=S.look;
   if(wtab==='face')body=`<p class="muted" style="margin:0 0 10px">"Theo tâm trạng" thì nét mặt đổi theo Check-in. Khi ốm hoặc buồn ngủ, Chibi vẫn tự đổi để nhắc bạn.</p><div class="row">${FACES.map(([v,i,t])=>`<button class="chip" data-look="face" data-lv="${v}" aria-pressed="${L.face===v}">${i} ${t}</button>`).join('')}</div>`;
   if(wtab==='hair')body=`<div class="q" style="margin-top:0"><h3>Kiểu tóc</h3><div class="row">${[['straight','Dài thẳng rẽ ngôi'],['wavy','Dài xoăn sóng'],['bob','Ngắn mái ngố'],['buns','Búi hai bên']].map(([k,t])=>`<button class="chip" data-hair="${k}" aria-pressed="${S.hair===k}">${t}</button>`).join('')}</div></div><div class="q"><h3>Màu tóc</h3><div class="row">${HAIRC.map(c=>`<button class="sw" data-hc="${c}" style="background:${c}" aria-label="Màu ${c}" aria-pressed="${S.hairColor===c}"></button>`).join('')}</div></div>`;
   const WT=[['outfit','👗 Trang phục'],['night','🌙 Đồ ngủ'],['acc','🎀 Phụ kiện'],['makeup','💄 Trang điểm'],['face','😊 Nét mặt'],['hair','💇‍♀️ Tóc']];
-  return `<div class="card"><h2>👗 Phòng thay đồ</h2>
+  const SEC={
+   wardrobe:()=>`<div class="card"><h2>👗 Phòng thay đồ</h2>
   <div class="mirror">${chibi({mood:'calm',outfit:pv,face:L.face==='auto'?'smile':L.face})}</div>  <div class="wtabs scroll">${WT.map(([k,t])=>`<button data-wt="${k}" aria-pressed="${wtab===k}">${t}</button>`).join('')}</div>
   ${body}</div>
-  <div class="card"><h2>🎨 Giao diện theo mùa</h2><div class="row">${[['auto','Tự động (15/11 – 6/1)'],['xmas','🎄 Luôn bật Giáng sinh'],['none','Tắt']].map(([k,t])=>`<button class="chip" data-theme="${k}" aria-pressed="${(S.theme||'auto')===k}">${t}</button>`).join('')}</div>
+  `,
+   season:()=>`  <div class="card"><h2>🎨 Giao diện theo mùa</h2><div class="row">${[['auto','Tự động (15/11 – 6/1)'],['xmas','🎄 Luôn bật Giáng sinh'],['none','Tắt']].map(([k,t])=>`<button class="chip" data-theme="${k}" aria-pressed="${(S.theme||'auto')===k}">${t}</button>`).join('')}</div>
   <p class="muted" style="margin:8px 0 0">Mùa Giáng sinh: tuyết rơi, màu Noel, Chibi đội mũ Noel quàng khăn len, thêm hoạt động ca cao nóng, mở quà, nặn người tuyết.</p></div>
-  <div class="card"><h2>Chibi & bạn</h2>
+  `,
+   me:()=>`  <div class="card"><h2>🧸 Bạn & Chibi</h2>
   <div class="q" style="margin-top:0"><h3>Tên Chibi gọi bạn</h3><input class="inp" id="nm" value="${esc(S.name)}" maxlength="20"></div>
   <div class="q"><h3>Chibi di chuyển</h3><div class="row"><button class="chip" data-roam="1" aria-pressed="${S.roam!==false}">🏃 Chạy lung tung</button><button class="chip" data-roam="0" aria-pressed="${S.roam===false}">🪑 Ngồi yên một góc</button></div><p class="muted" style="margin:6px 0 0">Mẹo: kéo Chibi để bế bé sang chỗ khác.</p></div>
   <div class="q"><h3>Âm thanh Chibi</h3><div class="row"><button class="chip" data-snd="1" aria-pressed="${S.sound!==false}">🔊 Bật (tiếng ực ực khi uống nước)</button><button class="chip" data-snd="0" aria-pressed="${S.sound===false}">🔇 Tắt</button></div></div>
   <div class="q"><h3>Giờ đi ngủ mục tiêu</h3><input class="inp" type="time" id="bt" value="${S.bedTarget}"></div></div>
-  <div class="card"><h2>🔔 Nhắc nhở</h2>
+  `,
+   remind:()=>`  <div class="card"><h2>🔔 Nhắc nhở</h2>
   <p class="muted" style="margin:0 0 6px">App web trên iPhone chỉ tự nhắc được khi đang mở. Muốn được báo cả khi app tắt, chọn 📅 (thêm vào app Lịch) hoặc ⏰ (báo thức trong app Đồng hồ).</p>
   <div class="q" style="margin-top:8px"><h3>Mặc định cho việc có hạn chót</h3><div class="row">${LV.map(([k,i,n])=>`<button class="chip sm" data-rdef="${k}" aria-pressed="${S.remindDefault.task===k}">${i} ${n}</button>`).join('')}</div><p class="muted" style="margin:6px 0 0">Từng việc vẫn đổi riêng được trong phần chi tiết.</p></div>
   <div class="q"><h3>Giờ đi ngủ (${S.bedTarget})</h3><div class="row">${LV.slice(0,3).map(([k,i,n])=>`<button class="chip sm" data-rbed="${k}" aria-pressed="${S.remindDefault.bed===k}">${i} ${n}</button>`).join('')}</div>
   ${S.remindDefault.bed==='chibi'?'<p class="muted" style="margin:6px 0 0">Trước giờ ngủ 30 phút, nếu đang mở app, Chibi sẽ nhắc bạn khép lại ngày.</p>':S.remindDefault.bed==='cal'?`<div class="okline ${S.bedBell?'':'warn'}" style="margin:8px 0 0"><span>${S.bedBell?'🔔':'🔕'}</span><span>${S.bedBell?'Đã thêm vào Lịch, báo trước 30 phút mỗi tối':'Chưa thêm vào Lịch'}</span></div><button class="btn ghost" style="margin-top:8px" data-a="bedIcs">📅 ${S.bedBell?'Thêm lại':'Thêm Giờ đi ngủ vào Lịch'} (lặp hằng ngày)</button>`:''}</div>
   <p class="muted" style="margin:12px 0 0">💡 Ngày Lười Biếng (đang ốm hoặc năng lượng ≤ 2): Chibi tạm không nhắc việc. Sắp có: Trung tâm nhắc nhở, Giờ yên tĩnh, Phím tắt "Cozy Nhắc" để tạo báo thức một chạm.</p></div>
-  ${dataCard()}
-  ${standalone()?'':`<div class="card"><h2>📲 Cài lên màn hình chính</h2>${installHow()}</div>`}
-  <div class="card demo"><h2>Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
+  `,
+   data:()=>`  ${dataCard()}
+  `,
+   install:()=>`  ${standalone()?'':`<div class="card"><h2>📲 Cài lên màn hình chính</h2>${installHow()}</div>`}
+  `,
+   demo:()=>`  <div class="card demo"><h2>🧪 Xem thử trạng thái</h2><p class="muted" style="margin:0 0 10px">Xem trước các trạng thái mà không cần đợi đến giờ.</p><div class="row"><button class="btn ghost" data-a="demoNight">${demoNight?'☀️ Về ban ngày':'🌙 Thử Giờ đi ngủ'}</button></div>
   <h3 style="font-size:15px;margin:14px 0 8px">Hoạt động của Chibi</h3><p class="muted" style="margin:0 0 8px">Bình thường bé tự chọn theo tâm trạng và thể trạng hôm nay. Bấm để xem trước:</p><div class="row">${Object.keys(ACTNAME).map(k=>`<button class="chip" data-act="${k}">${ACTNAME[k]}</button>`).join('')}</div></div>
-  <div class="card"><details class="more"><summary>💝 Giới thiệu & Ghi công</summary><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
-  <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Everkinetic</b> – hình tư thế bài tập · Greg Priday & cộng đồng (github.com/everkinetic/data) · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.vi" target="_blank" rel="noopener">CC BY-SA 4.0</a> · chỉ nén dung lượng, không sửa nội dung hình</li><li><b>body-highlighter</b> – hình cơ thể tô nhóm cơ · GV79 & alahaxe · giấy phép MIT</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></details></div>
-  <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
+  `,
+   about:()=>`  <div class="card"><h2>💝 Giới thiệu & Ghi công</h2><p class="muted" style="margin:6px 0">Cozy Life OS là app cá nhân, mọi dữ liệu nằm trên máy bạn. App dùng lại các thư viện mã nguồn mở sau (đã được kiểm tra không gửi dữ liệu đi đâu):</p>
+  <ul class="muted credits"><li><b>canvas-confetti</b> – hiệu ứng hoa giấy · Kiril Vatev · giấy phép ISC</li><li><b>free-exercise-db</b> – dữ liệu bài tập gốc · yuhonas · Unlicense (công cộng); tên & mô tả tiếng Việt viết riêng</li><li><b>Everkinetic</b> – hình tư thế bài tập · Greg Priday & cộng đồng (github.com/everkinetic/data) · <a href="https://creativecommons.org/licenses/by-sa/4.0/deed.vi" target="_blank" rel="noopener">CC BY-SA 4.0</a> · chỉ nén dung lượng, không sửa nội dung hình</li><li><b>body-highlighter</b> – hình cơ thể tô nhóm cơ · GV79 & alahaxe · giấy phép MIT</li><li><b>Quicksand</b> & <b>Nunito</b> – phông chữ · SIL Open Font License</li></ul></div>
+  <p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>
+  `};
+  if(setPage&&SEC[setPage])return `<div class="subhead"><button class="backbtn" data-sp="">‹ Cài đặt</button></div>`+SEC[setPage]();
+  return settingsHub()}
+function settingsHub(){const bd=backupDue(),ds=S.lastBackup?daysSince(S.lastBackup):null;
+  const G=[['Chibi',[['wardrobe','👗','Phòng thay đồ','Trang phục, đồ ngủ, phụ kiện, trang điểm, tóc'],['me','🧸','Bạn & Chibi','Tên: '+esc(S.name)+' · ngủ lúc '+S.bedTarget+' · '+(S.roam===false?'ngồi yên':'chạy lung tung')],['season','🎨','Giao diện theo mùa',{auto:'Tự động',xmas:'Luôn bật Giáng sinh',none:'Tắt'}[S.theme||'auto']]]],
+    ['Ứng dụng',[['remind','🔔','Nhắc nhở','Việc có hạn: '+lvInfo(S.remindDefault.task)[1]+' '+lvInfo(S.remindDefault.task)[2]+' · Giờ ngủ: '+lvInfo(S.remindDefault.bed)[1]],['data','💾','Dữ liệu & sao lưu',(S.lastBackup?'Sao lưu lần cuối: '+(ds?ds+' ngày trước':'hôm nay'):'Chưa sao lưu lần nào'),bd],...(standalone()?[]:[['install','📲','Cài lên màn hình chính','Mở như app, dùng được khi không có mạng']])]],
+    ['Khác',[['demo','🧪','Xem thử trạng thái','Giờ đi ngủ, các hoạt động của Chibi'],['about','💝','Giới thiệu & Ghi công','Thư viện mã nguồn mở và giấy phép']]]];
+  return G.map(([t,rows])=>`<div class="card setgroup"><h3 class="sgh">${t}</h3>${rows.map(([k,i,n,sub,warn])=>`<button class="setrow2" data-sp="${k}"><span class="si">${i}</span><span class="stx"><b>${n}</b><i class="${warn?'warnt':''}">${warn?'⚠️ ':''}${sub}</i></span><span class="chev">›</span></button>`).join('')}</div>`).join('')
+  +`<p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.18-3';
+const APPVER='2026.11.18-4';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
@@ -799,7 +816,8 @@ async function replaceState(ns,label){
 /* ---------- Events ---------- */
 document.addEventListener('click',async e=>{const t=e.target.closest('button');if(!t)return;
   if(t.id==='toast')return;
-  if(t.dataset.tab){tab=t.dataset.tab;render();scrollTo({top:0,behavior:'smooth'});return}
+  if(t.dataset.tab){if(t.dataset.tab==='set')setPage=null;tab=t.dataset.tab;render();scrollTo({top:0,behavior:'smooth'});return}
+  if(t.dataset.sp!==undefined){setPage=t.dataset.sp||null;render();scrollTo({top:0});return}
   if(t.dataset.f){e.preventDefault();F[t.dataset.f]=isNaN(t.dataset.v)?t.dataset.v:+t.dataset.v;t.parentNode.querySelectorAll('.chip').forEach(b=>b.setAttribute('aria-pressed',b===t));return}
   if(t.dataset.star){F.q=+t.dataset.star;t.parentNode.querySelectorAll('button').forEach(b=>b.classList.toggle('on',+b.dataset.star<=F.q));return}
   if(t.dataset.w!==undefined){const d=today(),i=+t.dataset.w;d.water=d.water===i+1?i:i+1;render();say(d.water>=8?'Đủ 8 ly rồi! '+S.name+' giỏi quá 🎉':'Thêm 1 ly nữa nè 💧 ('+d.water+'/8)');return}
