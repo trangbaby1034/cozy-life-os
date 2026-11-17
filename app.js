@@ -61,13 +61,26 @@ addEventListener('pagehide',flush);
 let tab='today',demoNight=false;
 const today=()=>{const k=dk(new Date());return S.days[k]||(S.days[k]={top3:[{t:'',d:false},{t:'',d:false},{t:'',d:false}],water:0,candies:[],checkin:null,evening:null})};
 
-function isXmas(){if(S.theme==='xmas')return true;if(S.theme==='none')return false;const n=new Date(),m=n.getMonth()+1,d=n.getDate();return (m===11&&d>=15)||m===12||(m===1&&d<=6)}
+/* 🎨 Mùa: xmas (15/11–26/12) · ny – Năm mới dương lịch (27/12–5/1) · tet – Tết Nguyên Đán (3 tuần trước → mùng 10) */
+const CAN=['Giáp','Ất','Bính','Đinh','Mậu','Kỷ','Canh','Tân','Nhâm','Quý'],CHI=['Tý','Sửu','Dần','Mão','Thìn','Tỵ','Ngọ','Mùi','Thân','Dậu','Tuất','Hợi'];
+const canChi=y=>CAN[(y+6)%10]+' '+CHI[(y+8)%12];
+/* Mùng 1 Tết (đã đối chiếu lịch). Sau 2031 cần cập nhật thêm. */
+const TET={2026:'2026-02-17',2027:'2027-02-06',2028:'2028-01-26',2029:'2029-02-13',2030:'2030-02-03',2031:'2031-01-23'};
+function nextTet(){const n=new Date();n.setHours(0,0,0,0);for(const y of Object.keys(TET).map(Number).sort((a,b)=>a-b)){const t=new Date(TET[y]+'T00:00:00'),diff=Math.round((t-n)/864e5);if(diff>=-10)return{y,t,diff}}return null}
+function season(){const th=S.theme||'auto';if(th==='none')return null;if(th!=='auto')return th;const n=new Date(),m=n.getMonth()+1,d=n.getDate(),T=nextTet();
+  if(T&&T.diff<=21)return 'tet';if((m===12&&d>=27)||(m===1&&d<=5))return 'ny';if((m===11&&d>=15)||(m===12&&d<=26))return 'xmas';return null}
+const isXmas=()=>season()==='xmas';
+function seasonLabel(){const se=season(),n=new Date();if(se==='xmas')return xmasLabel();
+  if(se==='ny'){const y=n.getMonth()===11?n.getFullYear()+1:n.getFullYear();if(n.getMonth()===11){const dd=Math.round((new Date(y,0,1)-new Date(n.getFullYear(),11,n.getDate()))/864e5);return dd<=1?'🎆 Tối nay giao thừa, đón năm '+y+'!':'🎆 Còn '+dd+' ngày đến năm '+y}return '🎆 Chúc mừng năm mới '+y+'!'}
+  if(se==='tet'){const T=nextTet();if(!T)return '🧧 Chúc mừng năm mới';const cc=canChi(T.y);if(T.diff>1)return '🧧 Còn '+T.diff+' ngày đến Tết '+cc;if(T.diff===1)return '🧧 Tối nay giao thừa, đón Tết '+cc+'!';if(T.diff===0)return '🧧 Mùng 1 Tết '+cc+' · An khang thịnh vượng!';return '🧧 Mùng '+(1-T.diff)+' Tết '+cc+' · Vạn sự như ý!'}
+  return ''}
 function daysToXmas(){const n=new Date();n.setHours(0,0,0,0);let x=new Date(n.getFullYear(),11,25);if(n>x)x=new Date(n.getFullYear()+1,11,25);return Math.round((x-n)/864e5)}
-function xmasLabel(){const d=daysToXmas(),n=new Date();if(n.getMonth()===11&&n.getDate()===25)return '🎄 Giáng sinh an lành!';if(n.getMonth()===11&&n.getDate()>25||n.getMonth()===0)return '🎆 Chúc mừng năm mới!';return '🎄 Còn '+d+' ngày đến Giáng sinh'}
+function xmasLabel(){const d=daysToXmas(),n=new Date();if(n.getMonth()===11&&n.getDate()===25)return '🎄 Giáng sinh an lành!';if(n.getMonth()===11&&n.getDate()>25)return '🎄 Mùa Giáng sinh vui vẻ!';return '🎄 Còn '+d+' ngày đến Giáng sinh'}
 function isNight(){if(demoNight)return true;const n=new Date(),[h,m]=S.bedTarget.split(':').map(Number);const mins=n.getHours()*60+n.getMinutes(),t=h*60+m;return mins>=t-30||mins<240}
 function state(){const d=today(),c=d.checkin||{};let mood=c.mood||'calm';if(c.body==='sick')mood='sick';
   let outfit=S.autoSwap&&(isNight()||c.body==='sick')?S.nightWear:S.autoSwap&&c.body==='sore'?'gym':S.fav;
   if(activeWo()||(S.autoSwap&&outfit===S.fav&&S.gym.days.length&&planFor(new Date())))outfit='gym';
+  if(outfit===S.fav&&S.seasonWear!==false&&season()==='tet'&&!(OUTFITS[outfit]||{}).kig)outfit='aodai';
   return {mood,outfit}}
 
 const OUTFITS={
@@ -84,8 +97,9 @@ const OUTFITS={
  sweater:{n:'Áo len Giáng sinh',d:'Len xanh họa tiết, chân váy đỏ',c:'#6FAF8A',k:'#4F8E6B',shoe:'#B73C47'},
  reindeer:{n:'Tuần lộc',d:'Đồ bộ có gạc và mũi đỏ',c:'#C99D72',k:'#A67B52',b:'#F3E1C8',kig:1},
  pj:{n:'Pijama chấm bi',d:'Đồ ngủ cơ bản',c:'#CDBEF5',k:'#B9A6EE',shoe:'#B9A6EE'},
- gym:{n:'Đồ tập',d:'Tự mặc khi đau nhức cơ',c:'#8FD9B6',k:'#6FC59F',shoe:'#FFFFFF',auto:1}};
-const DAY=['pink','beige','lace','fluffy','brocade','noel','sweater'],KIG=['dino','bear','bunny','cat'],XMAS=['noel','sweater','reindeer'],NIGHT=['pj','dino','bear','bunny','cat','reindeer'];
+ gym:{n:'Đồ tập',d:'Tự mặc khi đau nhức cơ',c:'#8FD9B6',k:'#6FC59F',shoe:'#FFFFFF',auto:1},
+ aodai:{n:'Áo dài đỏ',d:'Áo dài Tết thêu hoa mai vàng',c:'#D7263D',k:'#A81C2E',shoe:'#F4C430'}};
+const TETW=['aodai'],DAY=['pink','beige','lace','fluffy','brocade','noel','sweater','aodai'],KIG=['dino','bear','bunny','cat'],XMAS=['noel','sweater','reindeer'],NIGHT=['pj','dino','bear','bunny','cat','reindeer'];
 const LIPS=[['#E8848D','Hồng nhạt'],['#F08A6E','Cam đào'],['#D9534F','Đỏ cam'],['#B8323F','Đỏ ruby'],['#C9897A','Nude']];
 const FACES=[['auto','🎭','Theo tâm trạng'],['smile','🙂','Mỉm cười'],['happy','😆','Cười tươi'],['wink','😉','Nháy mắt'],['pout','😗','Phồng má'],['cool','😌','Sang chảnh']];
 const LOOKDEF=LOOKDEF0;
@@ -102,6 +116,7 @@ function outfitSvg(k,cf){const o=OUTFITS[k]||OUTFITS.pink,c=cf||o.c,dk=o.k;
   if(k==='lace')return `<path d="M70 156Q100 150 130 156L128 186Q100 190 72 186Z" fill="${c}"/>`+[74,82,90,98,106,114,122].map(x=>`<circle cx="${x+2}" cy="156" r="4" fill="${c}" stroke="${dk}" stroke-width="1.2"/>`).join('')+[[82,168],[96,174],[110,166],[120,178],[88,180],[104,182]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="2.6" fill="none" stroke="${dk}" stroke-width="1.2"/>`).join('')+aline('#3B3740');
   if(k==='fluffy')return `<path d="M72 150Q100 140 128 150L129 188Q100 194 71 188Z" fill="${c}"/>`+[[78,158],[92,152],[108,156],[122,160],[84,172],[100,168],[116,174],[90,184],[110,184],[76,180],[124,180]].map(([x,y])=>`<circle cx="${x}" cy="${y}" r="4.5" fill="${dk}" opacity=".8"/>`).join('')+aline('#3E393C');
   if(k==='brocade')return bod+[[80,162,'#F2A7B5'],[96,170,'#9CC7A0'],[112,160,'#F2A7B5'],[122,176,'#9CC7A0'],[86,180,'#9CC7A0'],[104,182,'#F2A7B5']].map(([x,y,f])=>`<circle cx="${x}" cy="${y}" r="3.2" fill="${f}"/><circle cx="${x}" cy="${y}" r="1.2" fill="#fff"/>`).join('')+aline('#F7F0E4');
+  if(k==='aodai')return `<path d="M67 146Q100 136 133 146L139 214Q122 219 108 211L100 193L92 211Q78 219 61 214Z" fill="${c}"/><path d="M100 151V193" stroke="${dk}" stroke-width="1.4" opacity=".55"/><rect x="89" y="141" width="22" height="8" rx="3" fill="#F4C430"/>`+[[84,166],[115,171],[97,183],[121,195],[78,199]].map(([x,y])=>`<g fill="#F4C430"><circle cx="${x}" cy="${y}" r="2"/><circle cx="${x-3}" cy="${y-2}" r="1.6"/><circle cx="${x+3}" cy="${y-2}" r="1.6"/><circle cx="${x-2}" cy="${y+2.6}" r="1.6"/><circle cx="${x+2}" cy="${y+2.6}" r="1.6"/></g>`).join('');
   if(k==='gym')return `<path d="M72 152Q100 146 128 152L134 188L66 188Z" fill="${c}"/><rect x="66" y="184" width="68" height="22" rx="8" fill="#7C6BA8"/>`;
   return `<path d="M70 142Q100 134 130 142L146 204Q100 214 54 204Z" fill="${c}"/><circle cx="86" cy="168" r="4" fill="#fff" opacity=".8"/><circle cx="112" cy="182" r="4" fill="#fff" opacity=".8"/><circle cx="98" cy="196" r="4" fill="#fff" opacity=".8"/><circle cx="120" cy="158" r="4" fill="#fff" opacity=".8"/>`}
 function hoodBack(k,cf){const o=OUTFITS[k],c=cf||o.c,dk=o.k;let e='';
@@ -121,8 +136,8 @@ function eye(x,t,L,ef){const d=x<100?-1:1,ink='#3E3233',fi=ef||ink,hl2=ef?`<circ
   if(t==='arc')return `<path d="M${x-9} 106Q${x} 96 ${x+9} 106" fill="none" stroke="${ink}" stroke-width="4" stroke-linecap="round"/>`;
   if(t==='down')return `<path d="M${x-8} 106Q${x} 110 ${x+8} 106" fill="none" stroke="${ink}" stroke-width="3.5" stroke-linecap="round"/>`;
   if(t==='cool')return `<ellipse cx="${x}" cy="107" rx="6.5" ry="5.5" fill="${fi}"/><circle cx="${x+2.5}" cy="106" r="1.8" fill="#fff"/><path d="M${x-8} 102.5H${x+8}M${x+d*8} 102.5l${d*3} -2" stroke="${ink}" stroke-width="2.8" stroke-linecap="round"/>`;return ''}
-const POSE={sign:'up',magic:'up',cocoa:'mouth',gift:'hold',drink:'mouth',boba:'mouth',yawn:'mouth',tissue:'mouth',read:'hold',phone:'hold',laptop:'hold',teddy:'hold',stretch:'up',dance:'up',wave:'wave'};
-const ACTFACE={sign:'smile',magic:'happy',cocoa:'happy',gift:'happy',snowman:'happy',drink:'happy',boba:'smile',read:'look',phone:'look',laptop:'look',yawn:'yawn',nap:'sleepy',tissue:'squeeze',shiver:'sick',teddy:'sad',dance:'happy',wave:'happy',stretch:'squeeze',breathe:'calmclosed'};
+const POSE={lixi:'hold',banhchung:'hold',sparkler:'up',sign:'up',magic:'up',cocoa:'mouth',gift:'hold',drink:'mouth',boba:'mouth',yawn:'mouth',tissue:'mouth',read:'hold',phone:'hold',laptop:'hold',teddy:'hold',stretch:'up',dance:'up',wave:'wave'};
+const ACTFACE={lixi:'happy',banhchung:'happy',sparkler:'happy',sign:'smile',magic:'happy',cocoa:'happy',gift:'happy',snowman:'happy',drink:'happy',boba:'smile',read:'look',phone:'look',laptop:'look',yawn:'yawn',nap:'sleepy',tissue:'squeeze',shiver:'sick',teddy:'sad',dance:'happy',wave:'happy',stretch:'squeeze',breathe:'calmclosed'};
 function armsSvg(pose,AF,SK){const arm=(cx,cy,r)=>`<ellipse cx="${cx}" cy="${cy}" rx="9" ry="19" fill="${AF}" transform="rotate(${r} ${cx} ${cy})"/>`,hand=(x,y)=>`<circle cx="${x}" cy="${y}" r="8.5" fill="${SK}"/>`;
   const L=arm(62,168,14)+hand(57,186),Rt=arm(138,168,-14)+hand(144,184);
   if(pose==='hold')return arm(72,166,-38)+arm(128,166,38)+hand(85,178)+hand(115,178);
@@ -143,6 +158,9 @@ function actItem(a){switch(a){
   case 'gift':return `<rect x="83" y="160" width="34" height="27" rx="3" fill="#E5484D"/><rect x="97" y="160" width="6" height="27" fill="#7FB89A"/><rect x="83" y="169" width="34" height="6" fill="#7FB89A"/><path d="M100 160q-12-12-14-2q2 5 14 2q12-12 14-2q-2 5-14 2" fill="#7FB89A"/>`;
   case 'snowman':return `<circle cx="24" cy="212" r="15" fill="#fff" stroke="#DCE6F2" stroke-width="1.5"/><circle cx="24" cy="187" r="11" fill="#fff" stroke="#DCE6F2" stroke-width="1.5"/><circle cx="20" cy="185" r="1.6" fill="#3E3233"/><circle cx="28" cy="185" r="1.6" fill="#3E3233"/><path d="M24 189l9 2-9 2z" fill="#F29A4A"/><rect x="15" y="174" width="18" height="4" rx="1" fill="#3E3233"/><rect x="18.5" y="163" width="11" height="12" rx="1" fill="#3E3233"/><path d="M14 197q10 5 20 0" stroke="#E5484D" stroke-width="4" fill="none"/><circle cx="24" cy="207" r="1.6" fill="#3E3233"/><circle cx="24" cy="214" r="1.6" fill="#3E3233"/>`;
   case 'nap':return `<ellipse cx="100" cy="214" rx="40" ry="9" fill="#FFE2EA"/>`;
+  case 'lixi':return `<rect x="87" y="156" width="26" height="34" rx="3" fill="#D7263D"/><path d="M87 162L100 172L113 162" fill="none" stroke="#A81C2E" stroke-width="1.5"/><circle cx="100" cy="174" r="5" fill="#F4C430"/><text x="100" y="177" font-size="7" text-anchor="middle" fill="#A81C2E" font-weight="700">福</text>`;
+  case 'banhchung':return `<rect x="80" y="157" width="40" height="34" rx="4" fill="#5E9C4A"/><path d="M80 168H120M80 180H120M93 157V191M107 157V191" stroke="#F2E6C8" stroke-width="2.2"/><rect x="80" y="157" width="40" height="34" rx="4" fill="none" stroke="#3F7533" stroke-width="1.5"/>`;
+  case 'sparkler':return `<path d="M150 118L162 86" stroke="#8A7A78" stroke-width="2.4" stroke-linecap="round"/><g class="spk">${[0,45,90,135,180,225,270,315].map(a=>`<path d="M163 84L${(163+10*Math.cos(a*Math.PI/180)).toFixed(1)} ${(84+10*Math.sin(a*Math.PI/180)).toFixed(1)}" stroke="${a%90?'#FF9EB5':'#F2B544'}" stroke-width="2" stroke-linecap="round"/>`).join('')}<circle cx="163" cy="84" r="3.5" fill="#FFF3B0"/></g>`;
   default:return ''}}
 function chibi(o){const hc=o.hairColor||S.hairColor,hair=o.hair||S.hair,L=Object.assign({},LOOKDEF,S.look,o.look||{},{seasonWear:S.seasonWear}),sk='#FFE6D8';
   const k=o.outfit,of=OUTFITS[k]||OUTFITS.pink,kig=!!of.kig,pj=k==='pj';
@@ -190,9 +208,11 @@ function chibi(o){const hc=o.hairColor||S.hairColor,hair=o.hair||S.hair,L=Object
   const bag=dressy&&L.bag&&o.act!=='shiver'&&o.act!=='snowman'?`<path d="M58 190Q50 192 50 198" stroke="#D9B65C" stroke-width="1.6" fill="none"/><rect x="36" y="196" width="26" height="19" rx="5" fill="#FCFAF6" stroke="#E2D8CA" stroke-width="1.5"/><path d="M40 200L58 212M48 198L60 206M36 206L46 214M58 200L40 212M48 214L60 204" stroke="#EDE4D7" stroke-width="1"/><path d="M36 203Q49 209 62 203" fill="none" stroke="#E2D8CA" stroke-width="1.5"/><circle cx="49" cy="206" r="1.6" fill="#D9B65C"/>`:'';
   const watch=dressy&&L.watch?`<rect x="51" y="176" width="13" height="5" rx="2.5" fill="#E0B04A"/>`:'';
   const blanket=o.sleep?`<path d="M30 168Q100 140 170 168L176 232H24Z" fill="#DED2F9"/><path d="M30 168Q100 140 170 168" fill="none" stroke="#fff" stroke-width="6" opacity=".7"/>`:'';
-  const legC=kig?CL:SK,shoe=kig?of.k:of.shoe;const pose=POSE[o.act]||'side',AF=pj||kig||k==='sweater'?CL:SK;
+  const legC=kig?CL:k==='aodai'?'#FFF8F0':SK,shoe=kig?of.k:of.shoe;const pose=POSE[o.act]||'side',AF=pj||kig||k==='sweater'||k==='aodai'?CL:SK;
   const xw=(o.xw!==undefined?o.xw:isXmas()&&S.seasonWear!==false)&&!kig&&!o.sleep;
   const scarf=xw&&!pj?`<path d="M70 147Q100 161 130 147L132 158Q100 173 68 158Z" fill="#E5484D"/><path d="M76 153Q100 164 124 153" stroke="#fff" stroke-width="2.4" fill="none" opacity=".9"/><rect x="113" y="154" width="12" height="30" rx="4" fill="#E5484D" transform="rotate(8 119 154)"/><path d="M114 168h11M114 175h11" stroke="#fff" stroke-width="2.4" transform="rotate(8 119 154)"/>`:'';
+  const se=o.xw===false?null:season(),nyHat=se==='ny'&&S.seasonWear!==false&&!kig&&!o.sleep?`<g transform="rotate(16 132 40)"><path d="M113 60L132 4L151 60Z" fill="#F2B544"/><path d="M119 44H145M116 54H148M124 30H140" stroke="#E8505B" stroke-width="3"/><circle cx="132" cy="4" r="6.5" fill="#FF9EB5"/><path d="M113 60Q132 66 151 60" stroke="#fff" stroke-width="3" fill="none"/></g>`:'';
+  const tetFlower=se==='tet'&&S.seasonWear!==false&&!kig&&!o.sleep&&L.head==='none'?[0,72,144,216,288].map(a=>`<circle cx="${136+6.5*Math.cos(a*Math.PI/180)}" cy="${60+6.5*Math.sin(a*Math.PI/180)}" r="5" fill="#FFD24D"/>`).join('')+`<circle cx="136" cy="60" r="3.6" fill="#E8505B"/>`:'';
   const santa=xw?`<path d="M46 80Q50 32 98 27Q138 25 156 48L174 64Q162 58 151 61Q155 71 155 80Z" fill="#E5484D"/><path d="M60 50Q90 30 130 36" stroke="#fff" stroke-width="3" opacity=".25" fill="none"/><rect x="40" y="71" width="120" height="17" rx="8.5" fill="#fff"/><circle cx="174" cy="66" r="9" fill="#fff"/>`:'';
   const shine=d25&&!kig&&hair!=='buns'?`<path d="M66 64Q78 54 92 50M108 50Q122 54 134 64" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" opacity=".16"/><path d="M74 60Q82 55 88 53M126 60Q118 55 112 53" fill="none" stroke="#fff" stroke-width="1.6" stroke-linecap="round" opacity=".4"/>`:'';
   const neck=d25&&!kig&&!pj?`<ellipse cx="100" cy="151" rx="24" ry="7" fill="#E2AC98" opacity=".55"/>`:'';
@@ -201,15 +221,15 @@ function chibi(o){const hc=o.hairColor||S.hairColor,hair=o.hair||S.hair,L=Object
   return `<svg viewBox="0 0 200 240" aria-hidden="true">${defs}${d25?`<ellipse cx="100" cy="230" rx="62" ry="10" fill="url(#gs${u})"/>`:'<ellipse cx="100" cy="230" rx="54" ry="8" fill="rgba(74,62,61,.12)"/>'}
   ${o.act==='nap'||o.act==='snowman'?actItem(o.act):''}<g class="${o.sleep||o.still?'':'bob'}">${back}${kig?tail(k):''}
   <g class="legL"><rect x="83" y="200" width="12" height="23" rx="6" fill="${legC}"/><ellipse cx="88" cy="225" rx="9.5" ry="5.5" fill="${shoe}" stroke="rgba(0,0,0,.08)"/></g><g class="legR"><rect x="105" y="200" width="12" height="23" rx="6" fill="${legC}"/><ellipse cx="112" cy="225" rx="9.5" ry="5.5" fill="${shoe}" stroke="rgba(0,0,0,.08)"/></g>
-  <g class="${d25&&!o.sleep?'breath':''}">${pj||kig||k==='sweater'?'':`<path d="M68 148Q100 138 132 148L134 166L66 166Z" fill="${SK}"/>`}${neck}${outfitSvg(k,CL)}${fold}${scarf}
+  <g class="${d25&&!o.sleep?'breath':''}">${pj||kig||k==='sweater'||k==='aodai'?'':`<path d="M68 148Q100 138 132 148L134 166L66 166Z" fill="${SK}"/>`}${neck}${outfitSvg(k,CL)}${fold}${scarf}
   ${pose==='side'?armsSvg('side',AF,SK)+watch+bag+(o.act==='shiver'?actItem('shiver'):''):''}</g>
   ${kig?hoodBack(k,CL):''}<circle cx="100" cy="94" r="56" fill="${SK}"/>${rim}
   ${brows}${eyes}${blush}${frk}${mouth}${glass}
-  ${front}${shine}${ear}${santa||headAcc}${pose!=='side'?actItem(o.act)+armsSvg(pose,AF,SK):''}${extra}${blanket}</g></svg>`}
+  ${front}${shine}${ear}${santa||nyHat||(tetFlower+headAcc)}${pose!=='side'?actItem(o.act)+armsSvg(pose,AF,SK):''}${extra}${blanket}</g></svg>`}
 
 let bubT,bubRAF=0;function bubTrack(){const b=$('#bubble');if(!b.classList.contains('on')){bubRAF=0;return}const r=pet.getBoundingClientRect(),w=b.offsetWidth,c=r.left+r.width/2;b.classList.toggle('l',c-w/2<6);b.classList.toggle('r',c+w/2>innerWidth-6&&!(c-w/2<6));b.classList.toggle('below',r.top<b.offsetHeight+70);bubRAF=requestAnimationFrame(bubTrack)}
 function say(t,ms){const b=$('#bubble');b.textContent=t;b.classList.add('on');if(!bubRAF)bubRAF=requestAnimationFrame(bubTrack);clearTimeout(bubT);bubT=setTimeout(()=>b.classList.remove('on'),ms||4500)}
-function drawChibi(){const hr=new Date().getHours();pet.classList.toggle('low',low());document.documentElement.classList.toggle('xmas',isXmas());document.documentElement.classList.toggle('night',isNight());document.documentElement.classList.toggle('dusk',hr>=18||hr<6);$('#petSvg').innerHTML=chibi(Object.assign(state(),{act:P.act||(focusing()?'laptop':null)}))}
+function drawChibi(){const hr=new Date().getHours();pet.classList.toggle('low',low());{const se=season();['xmas','ny','tet'].forEach(x=>document.documentElement.classList.toggle(x,se===x))}buildFx();seasonGreet();document.documentElement.classList.toggle('night',isNight());document.documentElement.classList.toggle('dusk',hr>=18||hr<6);$('#petSvg').innerHTML=chibi(Object.assign(state(),{act:P.act||(focusing()?'laptop':null)}))}
 
 function suggestions(){const d=today(),c=d.checkin,out=[];if(!c)return out;
   const last=S.sleeps[S.sleeps.length-1],hrs=last&&!last.sample?(new Date(last.wake)-new Date(last.bed))/36e5:null;
@@ -776,7 +796,7 @@ const QUOTES=['Có công mài sắt, có ngày nên kim.','Kiến tha lâu cũng
   'Hôm nay chỉ cần tốt hơn hôm qua một chút thôi.','Nghỉ ngơi cũng là một phần của cố gắng.','Từng bước nhỏ vẫn là đang tiến về phía trước.','Bạn không cần hoàn hảo, chỉ cần bắt đầu.','Uống một ngụm nước, hít một hơi thật sâu, rồi mình làm tiếp nhé.','Dịu dàng với bản thân như cách bạn dịu dàng với người khác.','Một ngày bình yên cũng là một ngày tuyệt vời.','Việc khó nhất là bắt đầu, phần còn lại sẽ nhẹ dần.','Cảm xúc nào cũng được chào đón, kể cả những ngày không vui.','Hãy tự hào vì bạn đã đi được tới đây.',
   'Làm xong một việc nhỏ còn hơn nghĩ mãi về một việc lớn.','Cơ thể khỏe thì tâm trí mới vui.','Hôm nay hãy cho mình một khoảnh khắc thật chậm.','Không sao nếu hôm nay bạn đi chậm, miễn là đừng bỏ cuộc.','Một nụ cười nhỏ cũng đủ làm sáng cả ngày.','Ngủ đủ giấc là món quà bạn tặng cho chính mình ngày mai.','Mỗi viên kẹo trong lọ là một niềm vui bạn đã nhận ra.','Bạn đang làm tốt hơn bạn nghĩ đấy.','Ưu tiên ba việc quan trọng, những việc khác để sau cũng được.','Biết ơn những điều nhỏ bé, rồi điều lớn sẽ đến.'];
 function briefCard(){const now=new Date(),td=dk(now),day=Math.floor(now/864e5);if(isNight())return '';
-  const q=QUOTES[day%QUOTES.length],nT=S.tasks.filter(t=>!t.done&&t.due&&t.due<=td).length,gk=S.gym.days.length&&planFor(now),T3=today().top3.map(top3Slot).filter(x=>x.t).length;
+  const se=season(),q=se==='tet'?TETW_Q[day%TETW_Q.length]:se==='ny'?NYW[day%NYW.length]:QUOTES[day%QUOTES.length],nT=S.tasks.filter(t=>!t.done&&t.due&&t.due<=td).length,gk=S.gym.days.length&&planFor(now),T3=today().top3.map(top3Slot).filter(x=>x.t).length;
   const chips=[nT?`📋 ${nT} việc đến hạn`:'📋 Không có việc gấp',gk?`🏋️ Tập ${SPLITS[gk][0]} lúc ${S.gym.time}`:(S.gym.days.length?'🌿 Nghỉ tập':''),`💧 ${waterGoal()} ly nước`,T3?`⭐ Top 3: ${T3}/3 đã chọn`:''].filter(Boolean);
   return `<div class="card brief"><p class="quote">“${q}”</p><div class="bchips">${chips.map(c=>`<span>${c}</span>`).join('')}</div></div>`}
 
@@ -815,9 +835,9 @@ function viewSettings(){const st=state(),L=S.look;
   const grp=(title,key,opts)=>`<div class="q"><h3>${title}</h3><div class="row">${opts.map(([v,t])=>`<button class="chip" data-look="${key}" data-lv="${v}" aria-pressed="${String(key==='seasonWear'?S.seasonWear:L[key])===String(v)}">${t}</button>`).join('')}</div></div>`;
   const pv=wtab==='night'?S.nightWear:wtab==='outfit'||wtab==='face'||wtab==='makeup'||wtab==='acc'||wtab==='hair'?S.fav:st.outfit;
   let body='';
-  if(wtab==='outfit')body=`<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(k=>!XMAS.includes(k)).map(k=>card(k,'fav',S.fav)).join('')}</div><h3 class="wh">🎄 Giáng sinh</h3><div class="wgrid">${XMAS.map(k=>card(k,'fav',S.fav)).join('')}</div><h3 class="wh">Đồ bộ cute</h3><div class="wgrid">${KIG.map(k=>card(k,'fav',S.fav)).join('')}</div>`;
+  if(wtab==='outfit')body=`<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(k=>!XMAS.includes(k)&&!TETW.includes(k)).map(k=>card(k,'fav',S.fav)).join('')}</div><h3 class="wh">🧧 Tết</h3><div class="wgrid">${TETW.map(k=>card(k,'fav',S.fav)).join('')}</div><h3 class="wh">🎄 Giáng sinh</h3><div class="wgrid">${XMAS.map(k=>card(k,'fav',S.fav)).join('')}</div><h3 class="wh">Đồ bộ cute</h3><div class="wgrid">${KIG.map(k=>card(k,'fav',S.fav)).join('')}</div>`;
   if(wtab==='night')body=`<p class="muted" style="margin:0 0 10px">Bộ Chibi tự mặc vào buổi tối và khi bạn ốm.</p><div class="wgrid">${NIGHT.map(k=>card(k,'nw',S.nightWear)).join('')}</div><div class="row" style="margin-top:12px"><button class="chip" data-swap="1" aria-pressed="${S.autoSwap}">Tự thay đồ ngủ buổi tối, khi ốm và đồ tập khi đau cơ</button></div>`;
-  if(wtab==='acc')body=grp('Kính','eyewear',[['none','Không'],['round','👓 Gọng tròn'],['sun','🕶️ Kính râm'],['heart','💗 Kính tim']])+grp('Trên tóc','head',[['none','Không'],['bow','🎀 Nơ'],['band','Bờm ngọc'],['pearl','Kẹp ngọc trai'],['flower','🌼 Kẹp hoa'],['beanie','🧶 Mũ len']])+grp('🎅 Mùa Giáng sinh','seasonWear',[[true,'Đội mũ Noel + quàng khăn'],[false,'Không']])+grp('Bông tai','ear',[['none','Không'],['stud','Nụ'],['pearl','Ngọc trai rủ'],['hoop','Khoen vàng']])+grp('Đồng hồ vàng','watch',[[true,'Đeo'],[false,'Không']])+grp('Túi xách trắng','bag',[[true,'Cầm túi'],[false,'Không']])+`<p class="muted">Đồng hồ và túi chỉ hiện với váy áo đi chơi; phụ kiện trên tóc ẩn khi mặc đồ bộ có mũ.</p>`;
+  if(wtab==='acc')body=grp('Kính','eyewear',[['none','Không'],['round','👓 Gọng tròn'],['sun','🕶️ Kính râm'],['heart','💗 Kính tim']])+grp('Trên tóc','head',[['none','Không'],['bow','🎀 Nơ'],['band','Bờm ngọc'],['pearl','Kẹp ngọc trai'],['flower','🌼 Kẹp hoa'],['beanie','🧶 Mũ len']])+grp('🎉 Đồ theo mùa','seasonWear',[[true,'Mặc theo mùa (mũ Noel, mũ tiệc, áo dài Tết)'],[false,'Không']])+grp('Bông tai','ear',[['none','Không'],['stud','Nụ'],['pearl','Ngọc trai rủ'],['hoop','Khoen vàng']])+grp('Đồng hồ vàng','watch',[[true,'Đeo'],[false,'Không']])+grp('Túi xách trắng','bag',[[true,'Cầm túi'],[false,'Không']])+`<p class="muted">Đồng hồ và túi chỉ hiện với váy áo đi chơi; phụ kiện trên tóc ẩn khi mặc đồ bộ có mũ.</p>`;
   if(wtab==='makeup')body=`<div class="q" style="margin-top:0"><h3>Màu son</h3><div class="row">${LIPS.map(([c,t])=>`<button class="sw" data-look="lip" data-lv="${c}" style="background:${c}" aria-label="${t}" aria-pressed="${L.lip===c}"></button>`).join('')}</div><p class="muted" style="margin:6px 0 0">${(LIPS.find(x=>x[0]===L.lip)||['', ''])[1]}</p></div>`+grp('Má hồng','blush',[['soft','Tự nhiên'],['strong','Ửng đậm'],['heart','💗 Trái tim'],['none','Không']])+grp('Mi mắt','lash',[['natural','Tự nhiên'],['long','Cong dài']])+grp('Tàn nhang','freckles',[[false,'Không'],[true,'Có']]);
   if(wtab==='face')body=`<p class="muted" style="margin:0 0 10px">"Theo tâm trạng" thì nét mặt đổi theo Check-in. Khi ốm hoặc buồn ngủ, Chibi vẫn tự đổi để nhắc bạn.</p><div class="row">${FACES.map(([v,i,t])=>`<button class="chip" data-look="face" data-lv="${v}" aria-pressed="${L.face===v}">${i} ${t}</button>`).join('')}</div>`;
   if(wtab==='hair')body=`<div class="q" style="margin-top:0"><h3>Kiểu tóc</h3><div class="row">${[['straight','Dài thẳng rẽ ngôi'],['wavy','Dài xoăn sóng'],['bob','Ngắn mái ngố'],['buns','Búi hai bên']].map(([k,t])=>`<button class="chip" data-hair="${k}" aria-pressed="${S.hair===k}">${t}</button>`).join('')}</div></div><div class="q"><h3>Màu tóc</h3><div class="row">${HAIRC.map(c=>`<button class="sw" data-hc="${c}" style="background:${c}" aria-label="Màu ${c}" aria-pressed="${S.hairColor===c}"></button>`).join('')}</div></div>`;
@@ -827,8 +847,9 @@ function viewSettings(){const st=state(),L=S.look;
   <div class="mirror">${chibi({mood:'calm',outfit:pv,face:L.face==='auto'?'smile':L.face})}</div>  <div class="wtabs scroll">${WT.map(([k,t])=>`<button data-wt="${k}" aria-pressed="${wtab===k}">${t}</button>`).join('')}</div>
   ${body}</div>
   `,
-   season:()=>`  <div class="card"><h2>🎨 Giao diện theo mùa</h2><div class="row">${[['auto','Tự động (15/11 – 6/1)'],['xmas','🎄 Luôn bật Giáng sinh'],['none','Tắt']].map(([k,t])=>`<button class="chip" data-theme="${k}" aria-pressed="${(S.theme||'auto')===k}">${t}</button>`).join('')}</div>
-  <p class="muted" style="margin:8px 0 0">Mùa Giáng sinh: tuyết rơi, màu Noel, Chibi đội mũ Noel quàng khăn len, thêm hoạt động ca cao nóng, mở quà, nặn người tuyết.</p></div>
+   season:()=>`  <div class="card"><h2>🎨 Giao diện theo mùa</h2><div class="row">${[['auto','✨ Tự động theo ngày'],['xmas','🎄 Giáng sinh'],['ny','🎆 Năm mới'],['tet','🧧 Tết Nguyên Đán'],['none','Tắt']].map(([k,t])=>`<button class="chip" data-theme="${k}" aria-pressed="${(S.theme||'auto')===k}">${t}</button>`).join('')}</div>
+  <p class="muted" style="margin:10px 0 0">✨ <b>Tự động</b>: 🎄 Giáng sinh 15/11–26/12 (tuyết rơi, mũ Noel, ca cao nóng) · 🎆 Năm mới 27/12–5/1 (pháo hoa, mũ tiệc, pháo bông, đếm ngược giao thừa) · 🧧 Tết Nguyên Đán từ 3 tuần trước Tết đến mùng 10 (hoa mai hoa đào rơi, áo dài đỏ, lì xì, bánh chưng, lời chúc Tết). Tết năm nay: ${(()=>{const T=nextTet();return T?pad(T.t.getDate())+'/'+pad(T.t.getMonth()+1)+'/'+T.y+' – '+canChi(T.y):'chưa có lịch'})()}.</p>
+  <p class="muted" style="margin:6px 0 0">Muốn Chibi không đổi đồ theo mùa: Phòng thay đồ → Phụ kiện → Đồ theo mùa.</p></div>
   `,
    me:()=>`  <div class="card"><h2>🧸 Bạn & Chibi</h2>
   <div class="q" style="margin-top:0"><h3>Tên Chibi gọi bạn</h3><input class="inp" id="nm" value="${esc(S.name)}" maxlength="20"></div>
@@ -870,20 +891,33 @@ function viewSettings(){const st=state(),L=S.look;
   if(setPage&&SEC[setPage])return `<div class="subhead"><button class="backbtn" data-sp="">‹ Cài đặt</button></div>`+SEC[setPage]();
   return settingsHub()}
 function settingsHub(){const bd=backupDue(),ds=S.lastBackup?daysSince(S.lastBackup):null;
-  const G=[['Chibi',[['wardrobe','👗','Phòng thay đồ','Trang phục, đồ ngủ, phụ kiện, trang điểm, tóc'],['me','🧸','Bạn & Chibi','Tên: '+esc(S.name)+' · ngủ lúc '+S.bedTarget+' · '+(S.roam===false?'ngồi yên':'chạy lung tung')],['season','🎨','Giao diện theo mùa',{auto:'Tự động',xmas:'Luôn bật Giáng sinh',none:'Tắt'}[S.theme||'auto']]]],
+  const G=[['Chibi',[['wardrobe','👗','Phòng thay đồ','Trang phục, đồ ngủ, phụ kiện, trang điểm, tóc'],['me','🧸','Bạn & Chibi','Tên: '+esc(S.name)+' · ngủ lúc '+S.bedTarget+' · '+(S.roam===false?'ngồi yên':'chạy lung tung')],['season','🎨','Giao diện theo mùa',({auto:'Tự động',xmas:'🎄 Giáng sinh',ny:'🎆 Năm mới',tet:'🧧 Tết',none:'Tắt'}[S.theme||'auto'])+(S.theme==='auto'||!S.theme?(season()?' · đang: '+{xmas:'🎄 Giáng sinh',ny:'🎆 Năm mới',tet:'🧧 Tết'}[season()]:''):'')]]],
     ['Sức khỏe',[['habits','🌱','Thói quen',S.habits.map(h=>h.i).join(' ')+' · '+S.habits.length+' thói quen'],['water','💧','Uống nước',S.water.cups+' ly × '+S.water.ml+' ml = '+fmtL(S.water.cups*S.water.ml)+' mỗi ngày']]],
     ['Ứng dụng',[['remind','🔔','Nhắc nhở','Việc có hạn: '+lvInfo(S.remindDefault.task)[1]+' '+lvInfo(S.remindDefault.task)[2]+' · Giờ ngủ: '+lvInfo(S.remindDefault.bed)[1]],['data','💾','Dữ liệu & sao lưu',(S.lastBackup?'Sao lưu lần cuối: '+(ds?ds+' ngày trước':'hôm nay'):'Chưa sao lưu lần nào'),bd],...(standalone()?[]:[['install','📲','Cài lên màn hình chính','Mở như app, dùng được khi không có mạng']])]],
     ['Khác',[['demo','🧪','Xem thử trạng thái','Giờ đi ngủ, các hoạt động của Chibi'],['about','💝','Giới thiệu & Ghi công','Thư viện mã nguồn mở và giấy phép']]]];
   return G.map(([t,rows])=>`<div class="card setgroup"><h3 class="sgh">${t}</h3>${rows.map(([k,i,n,sub,warn])=>`<button class="setrow2" data-sp="${k}"><span class="si">${i}</span><span class="stx"><b>${n}</b><i class="${warn?'warnt':''}">${warn?'⚠️ ':''}${sub}</i></span><span class="chev">›</span></button>`).join('')}</div>`).join('')
   +`<p class="muted" style="text-align:center;margin:18px 0 6px">Cozy Life OS · phiên bản <span id="ver">${APPVER}</span></p><div class="row" style="justify-content:center"><button class="chip sm" data-a="checkUpd">🔄 Kiểm tra bản mới</button></div>`}
 
-const APPVER='2026.11.18-7';
+let fxSeason='?',fxTimer=0;
+function buildFx(){const se=reduce?null:season();if(se===fxSeason)return;fxSeason=se;const box=$('#snow');box.innerHTML='';clearInterval(fxTimer);
+  if(se==='xmas')for(let i=0;i<30;i++){const f=document.createElement('i'),z=3+Math.random()*6;f.className='flake';f.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;animation-duration:${8+Math.random()*10}s;animation-delay:${-Math.random()*18}s;opacity:${.5+Math.random()*.5}`;box.appendChild(f)}
+  if(se==='tet')for(let i=0;i<22;i++){const f=document.createElement('i'),z=8+Math.random()*8,mai=Math.random()<.5;f.className='petal';f.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;background:${mai?'#FFD24D':'#FFB3C6'};animation-duration:${9+Math.random()*9}s;animation-delay:${-Math.random()*18}s;opacity:${.6+Math.random()*.4}`;box.appendChild(f)}
+  if(se==='ny'){const burst=()=>{if(document.hidden||!Element.prototype.animate)return;const x=10+Math.random()*80,y=6+Math.random()*26,col=['#F2B544','#FF9EB5','#8FD0F2','#A8E6CF','#FFFFFF'][Math.floor(Math.random()*5)];
+      for(let i=0;i<16;i++){const d=document.createElement('i');d.className='fw';d.style.cssText=`left:${x}%;top:${y}%;background:${col};color:${col}`;box.appendChild(d);const a=i/16*Math.PI*2,r=38+Math.random()*26;
+        d.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:`translate(${Math.cos(a)*r}px,${Math.sin(a)*r+20}px) scale(.3)`,opacity:0}],{duration:1300,easing:'cubic-bezier(.2,.7,.3,1)',fill:'forwards'}).onfinish=()=>d.remove()}};
+    setTimeout(burst,600);fxTimer=setInterval(burst,3400)}}
+const NYW=['Năm mới bình an, vui khỏe và thật nhiều niềm vui nhỏ!','Một năm mới nhẹ nhàng, đủ đầy và dịu dàng với chính mình.','Chúc năm mới: ngủ đủ, uống đủ nước, cười thật nhiều.'];
+const TETW_Q=['An khang thịnh vượng.','Vạn sự như ý.','Năm mới bình an, sức khỏe dồi dào.','Tấn tài tấn lộc, phúc lộc đầy nhà.','Xuân an khang, Tết đoàn viên.','Cung chúc tân xuân, vạn sự cát tường.'];
+function seasonGreet(){const se=season();if(!se||se==='xmas')return;const n=new Date(),T=nextTet();S.fxShown=S.fxShown||{};let key=null;
+  if(se==='ny'&&n.getMonth()===0&&n.getDate()===1)key='ny'+n.getFullYear();if(se==='tet'&&T&&T.diff===0)key='tet'+T.y;
+  if(!key||S.fxShown[key])return;S.fxShown[key]=true;save();setTimeout(()=>{celebrate(3);if(!dnd())startAct(se==='ny'?'sparkler':'lixi');say(se==='ny'?'🎆 Chúc mừng năm mới '+n.getFullYear()+', '+S.name+'!':'🧧 Chúc mừng năm mới! Xuân '+canChi(T.y)+' an khang thịnh vượng nha '+S.name+'!',7000)},1500)}
+const APPVER='2026.11.18-8';
 const TABS=[['today','☀️','Hôm nay'],['tasks','📋','Việc'],['people','💌','Người thương'],['health','💪','Sức khỏe'],['set','⚙️','Cài đặt']];
 function render(){const n=new Date(),h=n.getHours();
   const keepPw=$('#bkpw')?$('#bkpw').value:'';
   const openD=[...document.querySelectorAll('details.more')].map(d=>d.open);
   $('#hello').textContent=(isNight()?'Chúc buổi tối':h<11?'Chào buổi sáng':h<14?'Chào buổi trưa':h<18?'Chào buổi chiều':'Chào buổi tối')+', '+S.name;
-  $('#xpill').textContent=isXmas()?xmasLabel():'';
+  $('#xpill').textContent=seasonLabel();
   $('#date').textContent=n.toLocaleDateString('vi-VN',{weekday:'long',day:'numeric',month:'long'});
   $('#tabs').innerHTML=TABS.map(([k,i,t])=>`<button data-tab="${k}" aria-current="${tab===k}"><span>${i}</span>${t}</button>`).join('');
   const keepT=$('#tnew')?$('#tnew').value:'';
@@ -996,7 +1030,7 @@ document.addEventListener('click',async e=>{const t=e.target.closest('button');i
   if(t.dataset.wt){wtab=t.dataset.wt;render();return}
   if(t.dataset.look){const k=t.dataset.look;let v=t.dataset.lv;if(v==='true')v=true;else if(v==='false')v=false;if(k==='seasonWear')S.seasonWear=v;else S.look[k]=v;render();return}
   if(t.dataset.swap){S.autoSwap=!S.autoSwap;render();return}
-  if(t.dataset.theme){S.theme=t.dataset.theme;render();if(isXmas())say('Giáng sinh tới rồi! 🎄 Mình đội mũ Noel nè');return}
+  if(t.dataset.theme){S.theme=t.dataset.theme;render();const se=season();say(se==='xmas'?'Giáng sinh tới rồi! 🎄 Mình đội mũ Noel nè':se==='ny'?'Năm mới rồi! 🎆 Mình đội mũ tiệc nè':se==='tet'?'Tết đến rồi! 🧧 Mình mặc áo dài đỏ nè':'Giao diện bình thường nha 🌷');return}
   if(t.dataset.snd){S.sound=t.dataset.snd==='1';render();if(S.sound)gulp();return}
   if(t.dataset.act){startAct(t.dataset.act);return}
   if(t.dataset.roam){S.roam=t.dataset.roam==='1';render();wander();return}
@@ -1155,8 +1189,9 @@ const ACTS={drink:['Ực ực~ 💧 Mát ghê! {n} uống nước chưa? ({w}/{g
   yawn:['Oáppp~ buồn ngủ ghê 🥱'],nap:['Chợp mắt xíu thôi… 💤'],tissue:['Hắt xììì! 🤧 {n} giữ ấm nha'],shiver:['Lạnh run luôn… 🥶 Nhớ mặc ấm nha'],
   teddy:['Ôm gấu một chút cho đỡ buồn 🧸','Không sao đâu, mình ở đây mà'],dance:['Lalala~ nhảy thôi 💃','Hôm nay vui quá đi!'],wave:['Hi {n}! 👋'],
   cocoa:['Ca cao nóng ấm bụng ghê ☕','Mùa đông mà có ly ca cao là nhất!'],gift:['Quà Giáng sinh nè 🎁 Không biết bên trong có gì ta?','Còn {x} ngày nữa là Giáng sinh rồi 🎄'],snowman:['Nặn người tuyết nè ⛄','Bạn người tuyết này tên gì ta?'],
-  stretch:['Vươn vaiiii~ {n} cũng duỗi người chút nha 🙆'],breathe:['Hít vào… thở ra… 🌬️']};
-const ACTNAME={drink:'💧 Uống nước',cocoa:'☕ Ca cao nóng',gift:'🎁 Mở quà',snowman:'⛄ Nặn người tuyết',boba:'🧋 Trà sữa',read:'📖 Đọc sách',phone:'📱 Lướt điện thoại',laptop:'💻 Chạy deadline',yawn:'🥱 Ngáp',nap:'💤 Chợp mắt',tissue:'🤧 Hắt xì',shiver:'🥶 Run lạnh',teddy:'🧸 Ôm gấu',dance:'💃 Nhảy',wave:'👋 Vẫy tay',stretch:'🙆 Vươn vai',breathe:'🌬️ Hít thở'};
+  stretch:['Vươn vaiiii~ {n} cũng duỗi người chút nha 🙆'],breathe:['Hít vào… thở ra… 🌬️'],
+  lixi:['Lì xì đầu năm nè 🧧 Chúc {n} an khang thịnh vượng!','Mở bao lì xì xem có gì nào 🧧'],banhchung:['Bánh chưng xanh nè 🟩 Tết đến rồi!','Gói bánh chưng đón Tết nha {n}'],sparkler:['Pháo bông lấp lánh ✨ Năm mới vui vẻ nha {n}!','Đếm ngược cùng mình nào 🎆']};
+const ACTNAME={drink:'💧 Uống nước',cocoa:'☕ Ca cao nóng',gift:'🎁 Mở quà',snowman:'⛄ Nặn người tuyết',boba:'🧋 Trà sữa',read:'📖 Đọc sách',phone:'📱 Lướt điện thoại',laptop:'💻 Chạy deadline',yawn:'🥱 Ngáp',nap:'💤 Chợp mắt',tissue:'🤧 Hắt xì',sparkler:'🎆 Pháo bông',lixi:'🧧 Lì xì',banhchung:'🟩 Bánh chưng',shiver:'🥶 Run lạnh',teddy:'🧸 Ôm gấu',dance:'💃 Nhảy',wave:'👋 Vẫy tay',stretch:'🙆 Vươn vai',breathe:'🌬️ Hít thở'};
 let lastDrink=0;
 function pickAct(){const d=today(),c=d.checkin||{},w={};const add=(k,n)=>w[k]=(w[k]||0)+n;
   add('wave',1);add('read',1);add('phone',1);
@@ -1167,6 +1202,7 @@ function pickAct(){const d=today(),c=d.checkin||{},w={};const add=(k,n)=>w[k]=(w
   if(c.body==='tired'){add('nap',2);add('yawn',2)}if(c.body==='sore')add('stretch',4);
   if(c.weather==='cold'&&c.body!=='sick')add('shiver',1);
   if(isXmas()){add('cocoa',2);if(c.body!=='sick'){add('gift',1);add('snowman',1)}}
+  if(season()==='tet'){add('lixi',2);add('banhchung',1)}if(season()==='ny'&&c.body!=='sick'){add('sparkler',3);add('dance',1)}
   if(low()){['dance','laptop','wave','phone','gift','snowman'].forEach(k=>{if(w[k])w[k]=k==='wave'||k==='phone'?.4:0});add('nap',2);add('yawn',1);add('read',1)}
   if(d.water<waterGoal()&&!isNight()&&Date.now()-lastDrink>40000&&Math.random()<.35)return 'drink';
   const tot=Object.values(w).reduce((a,b)=>a+b,0);let r=Math.random()*tot;for(const k in w){r-=w[k];if(r<=0)return k}return 'wave'}
@@ -1195,7 +1231,7 @@ addEventListener('resize',()=>{const b=bounds();place(Math.min(P.x,b.maxX),Math.
 {const b=bounds();place(b.maxX-10,b.maxY,0)}
 $('#wake').addEventListener('click',()=>{$('#sleepcover').classList.remove('on');demoNight=false;render();wander();checkinSheet();say('Chào buổi sáng '+S.name+'! Đêm qua ngủ ngon không?')});
 
-{const sn=$('#snow');for(let i=0;i<30;i++){const f=document.createElement('i');const z=3+Math.random()*6;f.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;animation-duration:${8+Math.random()*10}s;animation-delay:${-Math.random()*18}s;opacity:${.5+Math.random()*.5}`;sn.appendChild(f)}}
+{const sn=$('#snow');if(false)for(let i=0;i<30;i++){const f=document.createElement('i');const z=3+Math.random()*6;f.style.cssText=`left:${Math.random()*100}%;width:${z}px;height:${z}px;animation-duration:${8+Math.random()*10}s;animation-delay:${-Math.random()*18}s;opacity:${.5+Math.random()*.5}`;sn.appendChild(f)}}
 render();
 P.t=setTimeout(wander,1200);
 /* Nếu tối qua đã bấm "Đi ngủ" mà chưa bấm "Mình dậy rồi" thì hiện lại màn hình ngủ */

@@ -50,8 +50,8 @@ button{cursor:pointer}
 @keyframes dangle{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
 #pet.sitting svg{transform:translateY(6px) scale(1.04,.94)}
 .xpill{display:inline-block;margin:2px 0 4px;padding:2px 10px;border-radius:999px;background:#E5484D;color:#fff;font-size:13px;font-weight:700}.xpill:empty{display:none}
-#snow{position:fixed;inset:0;pointer-events:none;z-index:14;overflow:hidden;display:none}.xmas #snow{display:block}
-#snow i{position:absolute;top:-12px;border-radius:50%;background:#fff;box-shadow:0 0 3px rgba(140,165,200,.9);animation:fall linear infinite}
+#snow{position:fixed;inset:0;pointer-events:none;z-index:14;overflow:hidden;display:none}.xmas #snow,.ny #snow,.tet #snow{display:block}
+#snow i.flake{position:absolute;top:-12px;border-radius:50%;background:#fff;box-shadow:0 0 3px rgba(140,165,200,.9);animation:fall linear infinite}
 @keyframes fall{to{transform:translate(30px,105vh)}}
 :root.xmas{--bg:light-dark(#FBFCFF,#1A2030);--card:light-dark(#FFF6F3,#252C3F);--card2:light-dark(#FFFFFF,#2E364D);--line:light-dark(#F2DCD8,#3D4661);--peach:#F28B82;--lav:#FAD9D6;--sky:light-dark(#DCEBFA,#1B2238)}
 .xmas .card{position:relative}.xmas .card::before{content:'';position:absolute;left:14px;right:14px;top:-7px;height:14px;background:radial-gradient(circle at 11px 11px,#fff 9.5px,transparent 10.5px) 0 0/22px 14px repeat-x;filter:drop-shadow(0 1px 1px rgba(120,140,170,.25));pointer-events:none}
@@ -267,6 +267,17 @@ details.more summary::after{content:' ▾';color:var(--soft)}
 .smain{flex:1;border:0;background:transparent;text-align:left;display:flex;gap:10px;align-items:baseline;padding:8px 2px;min-height:42px}.smain b{font-variant-numeric:tabular-nums;min-width:44px}.smain i{font-style:normal;font-size:12px}
 .sitem.done .smain span{text-decoration:line-through;color:var(--soft)}
 .nrow{display:flex;align-items:center;gap:4px;border-top:1px dashed var(--line);padding:6px 0;margin-top:6px}.ntext{flex:1;overflow-wrap:anywhere}.ntext i{display:block;font-style:normal;font-size:12px;color:var(--soft)}
+:root.ny{--bg:light-dark(#FFFDF6,#131A2C);--card:light-dark(#FFF6DF,#1D263F);--card2:light-dark(#FFFFFF,#263050);--line:light-dark(#F1E0B5,#34406A);--peach:#F2B544;--lav:#FFE6A8;--sky:light-dark(#1E2A4A,#0E1428)}
+.ny .card{position:relative}.ny .card::before{content:'';position:absolute;left:20px;right:20px;top:0;height:3px;background:repeating-linear-gradient(90deg,#F2B544 0 10px,transparent 10px 17px);border-radius:2px;pointer-events:none}
+.ny .xpill{background:#F2B544;color:#3A2A00}.ny .sky::after{content:'🎆';position:absolute;right:2px;bottom:-2px;font-size:15px}.ny nav{box-shadow:0 -3px 0 #F2B544,0 -4px 16px rgba(0,0,0,.06)}
+:root.tet{--bg:light-dark(#FFF8EF,#2A1517);--card:light-dark(#FFEFE2,#3A1C20);--card2:light-dark(#FFFFFF,#47252A);--line:light-dark(#F4D3BC,#5A2F34);--peach:#E8505B;--lav:#FFE08A;--sky:light-dark(#FFE1DC,#3A1C20)}
+.tet .btn:not(.ghost){color:#fff}.tet .wtabs button[aria-pressed=true]{color:#fff}
+.tet .card{position:relative}.tet .card::before{content:'';position:absolute;left:16px;right:16px;top:-4px;height:8px;background:radial-gradient(circle,#F4C430 2.6px,transparent 3px) 0 0/18px 8px repeat-x;pointer-events:none}
+.tet .xpill{background:#D7263D}.tet .sky::after{content:'🏮';position:absolute;right:1px;bottom:-2px;font-size:16px}.tet nav{box-shadow:0 -3px 0 #F4C430,0 -4px 16px rgba(0,0,0,.06)}
+#snow i.petal{position:absolute;top:-18px;border-radius:0 100% 0 100%;animation:petalfall linear infinite}
+@keyframes petalfall{0%{transform:translate(0,0) rotate(0)}50%{transform:translate(-26px,52vh) rotate(200deg)}100%{transform:translate(22px,106vh) rotate(430deg)}}
+#snow i.fw{position:absolute;width:5px;height:5px;border-radius:50%;box-shadow:0 0 6px currentColor}
+.spk{animation:spk .25s steps(2) infinite;transform-origin:163px 84px}@keyframes spk{50%{transform:rotate(22deg) scale(1.15)}}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:380px){.top h1{font-size:22px}.sum b{font-size:19px}}
 </style>
