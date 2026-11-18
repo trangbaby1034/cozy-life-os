@@ -36,6 +36,7 @@ const TCARDS = [
   ['bells', '🔔', 'Chưa có chuông (việc, sinh nhật, hẹn)'],
   ['habits', '🌱', 'Thói quen & uống nước'],
   ['candy', '🍬', 'Lọ Kẹo Niềm Vui'],
+  ['moments', '📔', 'Khoảnh khắc (nhật ký nhanh)'],
   ['notes', '📝', 'Ghi chú nhanh']
 ];
 function cardOrder() {
@@ -112,6 +113,7 @@ function viewToday() {
     ${d.candies.length ? `<p class="muted" style="margin:8px 0 0">Hôm nay: ${d.candies.map(esc).join(' · ')}</p>` : ''}</div></div></div>`;
   };
   C.notes = () => notesCard();
+  C.moments = () => momentsCard();
   h += cardOrder()
     .filter(cardOn)
     .map(k => C[k]())

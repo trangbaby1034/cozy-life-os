@@ -429,6 +429,33 @@ async def t_seasonmig(p):
     assert await pg.get_attribute('[data-smode=acc]', 'aria-pressed') == 'true'
     assert not pg.errs, pg.errs; await b.close()
 
+@T('Nhật ký: Khoảnh khắc + tâm trạng, gắn người thương, #tag, kẹo/an ủi, trang ngày tự ghép, ghi bù, sửa, tìm kiếm')
+async def t_journal(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 18, 20, 0, tzinfo=TZ))
+    await pg.click('[data-tab=people]'); await pg.click('[data-p=addP]')
+    await pg.fill('[data-pf=name]', 'Mẹ'); await pg.press('[data-pf=name]', 'Tab'); await pg.click('[data-p=close]')
+    await pg.click('[data-tab=today]')
+    await pg.fill('#mmNew', 'Đi ăn tối với mẹ, vui quá #giadinh'); await pg.click('[data-mm=joy]')
+    assert 'Lọ Kẹo' in await txt(pg, '#nudge.show'); await pg.click('[data-nudge=b0]'); await pg.clock.run_for(3000)
+    c = await txt(pg, '.mcard'); assert '😊' in c and '#giadinh' in c and 'Mẹ' in c, c
+    await pg.click('.mcard [data-pmet]'); await pg.clock.run_for(300)
+    await pg.click('[data-mm=stress]'); await pg.fill('#mmNew', 'Sếp mắng vì trễ deadline'); await pg.press('#mmNew', 'Enter')
+    assert 'Ôm' in await txt(pg, '#bubble') or 'mình ở đây' in await txt(pg, '#bubble') or 'Hít thở' in await txt(pg, '#bubble') or 'ly nước' in await txt(pg, '#bubble') or 'Mai lại' in await txt(pg, '#bubble')
+    await pg.click('.mcard [data-jday]')
+    j = await txt(pg, '#sheet'); assert 'Sếp mắng' in j and 'Đi ăn tối' in j and 'Gặp Mẹ' in j and '🍬' in j, j
+    await pg.click('.jhead [data-jday]'); assert 'T3 17/11' in await txt(pg, '.jhead')
+    await pg.fill('#mmNew2', 'Ghi bù hôm qua'); await pg.press('#mmNew2', 'Enter')
+    assert '21:00' in await txt(pg, '#sheet')
+    await pg.click('#sheet [data-medit]'); await pg.fill('#meText', 'Ghi bù đã sửa #hocbai'); await pg.click('[data-mem=calm]'); await pg.click('[data-mesave]')
+    j = await txt(pg, '#sheet'); assert 'Ghi bù đã sửa' in j and '😌' in j, j
+    await pg.click('[data-jall]'); await pg.fill('#jq', 'mang')
+    assert await pg.locator('#jres .mrow').count() == 1
+    await pg.fill('#jq', ''); await pg.locator('#jq').blur(); await pg.click('[data-mtag="#hocbai"]')
+    assert await pg.locator('#jres .mrow').count() == 1 and 'Ghi bù' in await txt(pg, '#jres')
+    await pg.clock.run_for(600); await pg.reload(); await pg.clock.run_for(1500)
+    assert 'Sếp mắng' in await txt(pg, '.mcard') and '2 hôm nay' in await txt(pg, '.mcard')
+    assert not pg.errs, pg.errs; await b.close()
+
 async def main():
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)
