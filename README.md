@@ -24,7 +24,7 @@ Trợ lý cuộc sống nhỏ xinh cùng Bé Chibi — app cá nhân, chạy nga
 | `app.js` | Tệp ghép từ `src/` – **không sửa trực tiếp** |
 | `tools/build.mjs` | Ghép `src/` → `app.js`: `node tools/build.mjs` |
 | `tests/smoke.py` | Bộ kiểm thử tự động (Chrome + Playwright): `python3 tests/smoke.py` |
-| `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / workouts / people / appts / snapshots) |
+| `db.js` | Lưu trữ IndexedDB (settings / days / sleeps / tasks / workouts / people / appts / photos / snapshots) |
 | `backup.js` | Tạo và đọc file sao lưu (.json, tùy chọn mã hóa) |
 | `exercises.js` | Thư viện 71 bài tập tiếng Việt (dữ liệu gốc free-exercise-db, Unlicense) |
 | `img/ex/` | Hình tư thế 46 bài (Everkinetic, CC BY-SA 4.0 – chỉ nén dung lượng) |

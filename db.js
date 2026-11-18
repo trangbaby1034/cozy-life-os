@@ -8,10 +8,11 @@
      workouts  : mỗi buổi tập 1 bản ghi, khóa = id (từ phiên bản 3)
      people    : người thương, khóa = id (từ phiên bản 4)
      appts     : lịch hẹn, khóa = id (từ phiên bản 4)
+     photos    : ảnh của nhật ký (Blob JPEG đã thu nhỏ), khóa = id (từ phiên bản 5) – không nằm trong bản chụp
      snapshots : bản chụp toàn bộ dữ liệu (tự động mỗi ngày + trước khi khôi phục/xóa)
    Nếu trình duyệt không cho dùng IndexedDB thì tạm lưu vào localStorage. */
 (function () {
-  const NAME = 'cozy-life-os', VERSION = 4, FALLBACK_KEY = 'cozy-life-os-fallback';
+  const NAME = 'cozy-life-os', VERSION = 5, FALLBACK_KEY = 'cozy-life-os-fallback';
   const DATA = ['settings', 'days', 'sleeps', 'tasks', 'workouts', 'people', 'appts'], LISTS = ['days', 'sleeps', 'tasks', 'workouts', 'people', 'appts'];
   let dbp = null, useFallback = false;
   const cache = { settings: null, days: {}, sleeps: {}, tasks: {}, workouts: {}, people: {}, appts: {} };
@@ -31,6 +32,7 @@
         if (!db.objectStoreNames.contains('workouts')) db.createObjectStore('workouts');
         if (!db.objectStoreNames.contains('people')) db.createObjectStore('people');
         if (!db.objectStoreNames.contains('appts')) db.createObjectStore('appts');
+        if (!db.objectStoreNames.contains('photos')) db.createObjectStore('photos');
       };
       r.onsuccess = () => {
         const db = r.result;
@@ -171,5 +173,37 @@
     } catch (e) { return 'unknown'; }
   }
 
-  self.CozyDB = { loadState, saveState, replaceAll, putSnapshot, listSnapshots, getSnapshot, persist, get fallback() { return useFallback; } };
+  /* ---------- Ảnh nhật ký ---------- */
+  const memPhotos = {}; // dùng khi không có IndexedDB
+  async function putPhoto(id, blob) {
+    if (useFallback) { memPhotos[id] = blob; return; }
+    const db = await open(), tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').put(blob, id);
+    await txDone(tx);
+  }
+  async function getPhoto(id) {
+    if (useFallback) return memPhotos[id] || null;
+    const db = await open();
+    return (await reqP(db.transaction('photos', 'readonly').objectStore('photos').get(id))) || null;
+  }
+  async function delPhoto(id) {
+    if (useFallback) { delete memPhotos[id]; return; }
+    const db = await open(), tx = db.transaction('photos', 'readwrite');
+    tx.objectStore('photos').delete(id);
+    await txDone(tx);
+  }
+  const toDataURL = b => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(r.result); r.onerror = () => rej(r.error); r.readAsDataURL(b); });
+  /* Cho file sao lưu: { id: 'data:image/jpeg;base64,...' } */
+  async function exportPhotos(ids) {
+    const out = {};
+    for (const id of ids) { const b = await getPhoto(id); if (b) out[id] = await toDataURL(b); }
+    return out;
+  }
+  async function importPhotos(map) {
+    for (const id in map || {}) {
+      try { const b = await (await fetch(map[id])).blob(); await putPhoto(id, b); } catch (e) {}
+    }
+  }
+
+  self.CozyDB = { putPhoto, getPhoto, delPhoto, exportPhotos, importPhotos, loadState, saveState, replaceAll, putSnapshot, listSnapshots, getSnapshot, persist, get fallback() { return useFallback; } };
 })();

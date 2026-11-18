@@ -456,6 +456,89 @@ async def t_journal(p):
     assert 'Sếp mắng' in await txt(pg, '.mcard') and '2 hôm nay' in await txt(pg, '.mcard')
     assert not pg.errs, pg.errs; await b.close()
 
+@T('Nhật ký đợt 2: ảnh (thu nhỏ, xem lớn, bỏ ảnh, sao lưu/khôi phục), lịch tâm trạng, Ngày này năm trước, nút ✕')
+async def t_journal2(p):
+    from PIL import Image
+    img = os.path.join(OUT, 'pic.jpg'); Image.new('RGB', (3000, 2000), (240, 160, 170)).save(img, quality=95)
+    b = await p.chromium.launch(executable_path=CHROME, args=['--no-sandbox'])
+    ctx = await b.new_context(viewport={'width': 390, 'height': 844}, service_workers='block', timezone_id='Asia/Ho_Chi_Minh', accept_downloads=True)
+    pg = await ctx.new_page(); pg.errs = []; pg.on('pageerror', lambda e: pg.errs.append(str(e)))
+    await pg.clock.install(time=datetime.datetime(2026, 11, 18, 20, 0, tzinfo=TZ))
+    await pg.goto(URL + 'README.md')
+    await pg.evaluate("""() => new Promise((res, rej) => { const r = indexedDB.open('cozy-life-os', 5);
+      r.onupgradeneeded = () => ['settings','days','sleeps','snapshots','tasks','workouts','people','appts','photos'].forEach(n => r.result.createObjectStore(n));
+      r.onsuccess = () => { const db = r.result, tx = db.transaction(['settings','days'], 'readwrite');
+        tx.objectStore('settings').put({ name: 'Lan', v2: true }, 'main');
+        tx.objectStore('days').put({ moments: [{ id: 'old1', t: '2025-11-18T13:00:00.000Z', text: 'Lần đầu đi Đà Lạt', mood: 'joy', who: [] }] }, '2025-11-18');
+        tx.objectStore('days').put({ moments: [{ id: 'd1', t: '2026-11-03T03:00:00.000Z', text: 'Buồn', mood: 'sad', who: [] }, { id: 'd2', t: '2026-11-03T05:00:00.000Z', text: 'Vẫn buồn', mood: 'sad', who: [] }] }, '2026-11-03');
+        tx.oncomplete = () => { db.close(); res(); }; }; r.onerror = rej; })""")
+    await pg.goto(URL); await pg.clock.run_for(1500)
+    # Ngày này năm trước: Chibi nhắc sau 19h
+    await pg.clock.run_for(36000)
+    assert 'năm trước' in await txt(pg, '#nudge.show'); await pg.click('[data-nudge=b0]')
+    assert 'Đà Lạt' in await txt(pg, '#sheet') and '2025' in await txt(pg, '.jhead')
+    await pg.click('#sheet .sheetx'); assert await pg.locator('#sheetbg.on').count() == 0
+    # ảnh
+    await pg.set_input_files('#mmPic', img); await pg.wait_for_selector('#mmPrev img')
+    await pg.fill('#mmNew', 'Hoàng hôn đẹp quá'); await pg.press('#mmNew', 'Enter'); await pg.clock.run_for(1500)
+    await pg.wait_for_function("() => { const i = document.querySelector('.mcard img.mpic'); return i && i.complete && i.naturalWidth > 0; }")
+    w = await pg.evaluate("document.querySelector('.mcard img.mpic').naturalWidth"); assert w == 1280, w
+    await pg.click('.mcard [data-phview]'); assert await pg.locator('.phbox.on').count() == 1
+    await pg.click('.phbox'); assert await pg.locator('.phbox.on').count() == 0
+    # chỉ ảnh, không chữ
+    await pg.set_input_files('#mmPic', img); await pg.wait_for_selector('#mmPrev img'); await pg.click('#mmF button.btn')
+    await pg.wait_for_function("document.querySelectorAll('.mcard img.mpic').length == 2")
+    # trang ngày có "năm trước"
+    await pg.click('.mcard [data-jday]'); j = await txt(pg, '#sheet'); assert 'Ngày này năm trước' in j and 'Đà Lạt' in j, j
+    # lịch tâm trạng
+    await pg.click('#sheet [data-jcal]'); assert 'Tháng 11/2026' in await txt(pg, '.jhead')
+    bg = await pg.evaluate("document.querySelector('.mcell[data-jday=\"2026-11-03\"]').style.background"); assert bg, bg
+    await pg.click('.mcell[data-jday="2026-11-03"]'); assert 'Vẫn buồn' in await txt(pg, '#sheet')
+    await pg.click('#sheet .sheetx')
+    # sao lưu có ảnh → xóa → khôi phục
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=data]')
+    async with pg.expect_download() as d: await pg.click('[data-a=export]')
+    f = os.path.join(OUT, 'bk.json'); await (await d.value).save_as(f)
+    j = json.load(open(f)); assert len(j['data']['photos']) == 2
+    await pg.click('[data-tab=today]'); await pg.locator('.mcard [data-medit]').first.click()
+    await pg.click('[data-mephx]'); await pg.click('[data-mesave]'); await pg.click('#sheet .sheetx')
+    assert await pg.locator('.mcard img.mpic').count() == 1
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=data]')
+    await pg.set_input_files('#impf', f); await pg.wait_for_selector('[data-a=doImport]'); await pg.click('[data-a=doImport]')
+    await pg.wait_for_timeout(1500); await pg.click('[data-tab=today]')
+    await pg.wait_for_function("document.querySelectorAll('.mcard img.mpic').length == 2 && [...document.querySelectorAll('.mcard img.mpic')].every(i => i.naturalWidth > 0)")
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Nhật ký: khóa PIN (bật, khóa, ghi nhanh khi khóa, sai/đúng mã, tự khóa khi thoát app, quên mã)')
+async def t_jlock(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 18, 10, 0, tzinfo=TZ))
+    await pg.fill('#mmNew', 'Bí mật nhỏ'); await pg.press('#mmNew', 'Enter')
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=jlock]')
+    await pg.fill('#jlNew1', '1234'); await pg.fill('#jlNew2', '1235'); await pg.click('[data-jlset]')
+    assert 'chưa giống' in await txt(pg, '#jlErr')
+    await pg.fill('#jlNew2', '1234'); await pg.click('[data-jlset]'); await pg.wait_for_selector('[data-jlchange]')
+    assert 'đang bật' in await txt(pg, '#view')
+    await pg.click('[data-jlocknow]'); await pg.click('[data-tab=today]')
+    c = await txt(pg, '.mcard'); assert 'đang khóa' in c and 'Bí mật' not in c, c
+    await pg.fill('#mmNew', 'Ghi khi khóa'); await pg.press('#mmNew', 'Enter')
+    assert 'Ghi khi khóa' not in await txt(pg, '.mcard')
+    await pg.click('.mcard [data-jday]'); assert 'Nhật ký đang khóa' in await txt(pg, '#sheet')
+    await pg.fill('#pinIn', '0000'); await pg.click('[data-pinok]'); await pg.wait_for_function("document.querySelector('#pinErr').textContent.includes('chưa đúng')")
+    await pg.fill('#pinIn', '1234'); await pg.press('#pinIn', 'Enter'); await pg.wait_for_function("!document.querySelector('#pinIn')")
+    j = await txt(pg, '#sheet'); assert 'Bí mật nhỏ' in j and 'Ghi khi khóa' in j, j
+    await pg.click('#sheet .sheetx')
+    await pg.evaluate("Object.defineProperty(document, 'visibilityState', {value: 'hidden', configurable: true}); document.dispatchEvent(new Event('visibilitychange'))")
+    await pg.clock.fast_forward(70000)
+    await pg.evaluate("Object.defineProperty(document, 'visibilityState', {value: 'visible', configurable: true}); document.dispatchEvent(new Event('visibilitychange'))")
+    await pg.clock.run_for(500)
+    assert 'đang khóa' in await txt(pg, '.mcard')
+    await pg.click('[data-junlock]'); await pg.click('[data-pinforgot]')
+    await pg.fill('#jlForgot', 'xoa'); await pg.click('[data-jlreset]'); await pg.clock.run_for(500)
+    await pg.click('[data-tab=today]'); c = await txt(pg, '.mcard'); assert 'Bí mật nhỏ' in c and 'đặt lại' in c, c
+    await pg.clock.run_for(600); await pg.reload(); await pg.clock.run_for(1500)
+    assert 'Bí mật nhỏ' in await txt(pg, '.mcard')
+    assert not pg.errs, pg.errs; await b.close()
+
 async def main():
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)

@@ -243,6 +243,12 @@ document.addEventListener('click', async e => {
     render();
     return;
   }
+  if (t.dataset.sheetx) {
+    dropEmptyPerson();
+    closeSheet();
+    render();
+    return;
+  }
   if (t.dataset.workwear) {
     S.workWear = S.workWear === false;
     render();
@@ -1157,6 +1163,7 @@ const dropEmptyPerson = () => {
     S.people = S.people.filter(x => x !== p);
   pEdit = null;
   aEdit = null;
+  mmEdit = null;
 };
 $('#sheetbg').addEventListener('click', e => {
   if (e.target.id === 'sheetbg') {

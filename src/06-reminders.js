@@ -341,7 +341,8 @@ function checkNudges() {
       });
     }
   }
-  if (peopleNudge(now, td, log) || napNudge(now, td, log) || workNudge(now, td, log)) return;
+  if (peopleNudge(now, td, log) || napNudge(now, td, log) || workNudge(now, td, log) || journalNudge(now, td, log))
+    return;
   if (lazyDay()) return; /* Ngày Lười Biếng: tạm im lặng */
   const gk = S.gym.days.length && planFor(now);
   if (gk && S.gym.remind === 'chibi' && log.gym !== td) {

@@ -176,6 +176,7 @@ function viewSettings() {
     ['hair', '💇‍♀️ Tóc']
   ];
   const SEC = {
+    jlock: () => jlockPage(),
     wardrobe: () => `<div class="card"><h2>👗 Phòng thay đồ</h2>
   <div class="mirror">${chibi({ mood: 'calm', outfit: pv, face: L.face === 'auto' ? 'smile' : L.face })}</div>
   <p class="muted whyline">Hôm nay Chibi mặc <b>${OUTFITS[st.outfit] ? OUTFITS[st.outfit].n : ''}</b> vì ${WHY[st.why] ? WHY[st.why]() : 'đây là bộ yêu thích của bạn'}.</p>  <div class="wtabs scroll">${WT.map(([k, t]) => `<button data-wt="${k}" aria-pressed="${wtab === k}">${t}</button>`).join('')}</div>
@@ -340,6 +341,7 @@ function settingsHub() {
             ' · Giờ ngủ: ' +
             lvInfo(S.remindDefault.bed)[1]
         ],
+        ['jlock', '🔒', 'Khóa nhật ký', S.jlock && S.jlock.hash ? 'Đang bật mã PIN' : 'Chưa bật'],
         [
           'data',
           '💾',

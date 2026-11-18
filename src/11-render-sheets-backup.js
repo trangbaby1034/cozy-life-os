@@ -86,7 +86,7 @@ function seasonGreet() {
     );
   }, 1500);
 }
-const APPVER = '2026.11.18-15';
+const APPVER = '2026.11.18-16';
 const TABS = [
   ['today', '☀️', 'Hôm nay'],
   ['tasks', '📋', 'Việc'],
@@ -139,7 +139,9 @@ function render() {
 /* ---------- Sheets ---------- */
 let F = {};
 function openSheet(html) {
-  $('#sheet').innerHTML = html;
+  $('#sheet').innerHTML =
+    '<div class="sheetbar"><button class="sheetx" data-sheetx="1" aria-label="Đóng" title="Đóng">✕</button></div>' +
+    html;
   $('#sheet').dataset.ex = '';
   $('#sheet').scrollTop = 0;
   $('#sheetbg').classList.add('on');
@@ -273,7 +275,8 @@ async function doExport(btn) {
   if (btn) btn.disabled = true;
   try {
     await flush();
-    const obj = await CozyBackup.build(S, pw);
+    const ph = await CozyDB.exportPhotos(allPhotoIds()).catch(() => ({})),
+      obj = await CozyBackup.build(Object.keys(ph).length ? Object.assign({}, S, { photos: ph }) : S, pw);
     const name = 'cozy-life-os-' + dk(new Date()) + (pw ? '-khoa' : '') + '.json';
     const blob = new Blob([JSON.stringify(obj, null, pw ? 0 : 1)], { type: 'application/json' });
     let done = false;
@@ -351,6 +354,11 @@ function confirmImportSheet(r) {
 }
 async function replaceState(ns, label) {
   await flush();
+  if (ns && ns.photos) {
+    await CozyDB.importPhotos(ns.photos).catch(() => {});
+    ns = Object.assign({}, ns);
+    delete ns.photos;
+  }
   if (hasData(S)) await CozyDB.putSnapshot('safe-' + Date.now(), S, label).catch(() => {});
   const keepLast = S.lastBackup;
   S = Object.assign(DEF(), ns);
