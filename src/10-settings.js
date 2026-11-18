@@ -47,6 +47,16 @@ function dataCard() {
   <details class="more" style="margin-top:6px"><summary>🧹 Xóa dữ liệu</summary><div class="row" style="margin-top:8px">${S.sleeps.some(x => x.sample) ? '<button class="btn ghost" data-a="clearSample">Xóa dữ liệu mẫu</button>' : ''}<button class="btn ghost" data-a="reset">Xóa hết, làm lại</button></div><p class="muted hide" id="resetQ">Bấm "Xóa hết" lần nữa để xác nhận. (App sẽ chụp lại trước khi xóa.)</p></details></div>`;
 }
 
+const WHY = {
+  fav: () => 'đây là bộ yêu thích của bạn',
+  night: () => 'đã đến giờ đi ngủ',
+  sick: () => 'hôm nay bạn không khỏe',
+  wo: () => 'bạn đang tập',
+  sore: () => 'bạn đang đau nhức cơ',
+  gymday: () => 'hôm nay là ngày tập',
+  work: () => 'bạn đang làm việc',
+  season: () => (season() === 'tet' ? 'đang Tết (set theo mùa)' : 'đang mùa Giáng sinh (set theo mùa)')
+};
 function viewSettings() {
   const st = state(),
     L = S.look;
@@ -55,7 +65,7 @@ function viewSettings() {
     return `<button class="wd" data-${attr}="${k}" aria-pressed="${cur === k}">${chibi({ mood: 'calm', outfit: k, still: 1, face: 'smile' })}<b>${o.n}</b><span>${o.d}</span></button>`;
   };
   const grp = (title, key, opts) =>
-    `<div class="q"><h3>${title}</h3><div class="row">${opts.map(([v, t]) => `<button class="chip" data-look="${key}" data-lv="${v}" aria-pressed="${String(key === 'seasonWear' ? S.seasonWear : L[key]) === String(v)}">${t}</button>`).join('')}</div></div>`;
+    `<div class="q"><h3>${title}</h3><div class="row">${opts.map(([v, t]) => `<button class="chip" data-look="${key}" data-lv="${v}" aria-pressed="${String(L[key] || 'none') === String(v)}">${t}</button>`).join('')}</div></div>`;
   const pv =
     wtab === 'night'
       ? S.nightWear
@@ -64,7 +74,23 @@ function viewSettings() {
         : st.outfit;
   let body = '';
   if (wtab === 'outfit')
-    body = `<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(
+    body = `<h3 class="wh" style="margin-top:0">🎉 Mặc theo mùa</h3><div class="row">${[
+      ['set', '🎁 Tự mặc set theo mùa'],
+      ['acc', '✨ Chỉ thêm phụ kiện mùa'],
+      ['off', '👗 Không theo mùa']
+    ]
+      .map(([v, t]) => `<button class="chip sm" data-smode="${v}" aria-pressed="${S.seasonMode === v}">${t}</button>`)
+      .join('')}</div><p class="muted" style="margin:6px 0 0">${
+      S.seasonMode === 'set'
+        ? 'Giáng sinh mặc trọn set (váy, mũ Noel, khăn), Năm mới đội mũ tiệc, Tết mặc áo dài cài hoa mai. Hết mùa về đồ bạn chọn.'
+        : S.seasonMode === 'acc'
+          ? 'Giữ đồ đang mặc, chỉ đội thêm mũ Noel, khăn, mũ tiệc hoặc hoa mai theo mùa.'
+          : 'Chibi mặc đúng đồ bạn chọn. Đồ và phụ kiện mùa vẫn mặc được quanh năm như đồ thường.'
+    }</p>${
+      S.seasonMode === 'set'
+        ? `<div class="q" style="margin-top:8px"><h3>Set Giáng sinh</h3><div class="row">${[...XMASFITS.map(k => [k, OUTFITS[k].n]), ['rand', '🎲 Mỗi ngày một bộ']].map(([k, n]) => `<button class="chip sm" data-sfit="${k}" aria-pressed="${(S.seasonFit.xmas || 'noel') === k}">${n}</button>`).join('')}</div></div>`
+        : ''
+    }<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(
       k => !XMAS.includes(k) && !TETW.includes(k) && !WORK.includes(k)
     )
       .map(k => card(k, 'fav', S.fav))
@@ -87,11 +113,14 @@ function viewSettings() {
         ['band', 'Bờm ngọc'],
         ['pearl', 'Kẹp ngọc trai'],
         ['flower', '🌼 Kẹp hoa'],
-        ['beanie', '🧶 Mũ len']
+        ['beanie', '🧶 Mũ len'],
+        ['santa', '🎅 Mũ Noel'],
+        ['nyhat', '🎉 Mũ tiệc'],
+        ['mai', '🌼 Hoa mai']
       ]) +
-      grp('🎉 Đồ theo mùa', 'seasonWear', [
-        [true, 'Mặc theo mùa (mũ Noel, mũ tiệc, áo dài Tết)'],
-        [false, 'Không']
+      grp('Khăn quàng', 'scarf', [
+        ['none', 'Không'],
+        ['red', '🧣 Khăn len đỏ']
       ]) +
       grp('Bông tai', 'ear', [
         ['none', 'Không'],
@@ -148,7 +177,8 @@ function viewSettings() {
   ];
   const SEC = {
     wardrobe: () => `<div class="card"><h2>👗 Phòng thay đồ</h2>
-  <div class="mirror">${chibi({ mood: 'calm', outfit: pv, face: L.face === 'auto' ? 'smile' : L.face })}</div>  <div class="wtabs scroll">${WT.map(([k, t]) => `<button data-wt="${k}" aria-pressed="${wtab === k}">${t}</button>`).join('')}</div>
+  <div class="mirror">${chibi({ mood: 'calm', outfit: pv, face: L.face === 'auto' ? 'smile' : L.face })}</div>
+  <p class="muted whyline">Hôm nay Chibi mặc <b>${OUTFITS[st.outfit] ? OUTFITS[st.outfit].n : ''}</b> vì ${WHY[st.why] ? WHY[st.why]() : 'đây là bộ yêu thích của bạn'}.</p>  <div class="wtabs scroll">${WT.map(([k, t]) => `<button data-wt="${k}" aria-pressed="${wtab === k}">${t}</button>`).join('')}</div>
   ${body}</div>
   `,
     season: () => `  <div class="card"><h2>🎨 Giao diện theo mùa</h2><div class="row">${[

@@ -388,6 +388,47 @@ async def t_office(p):
     await pg.click('[data-workwear]'); assert '#F2B8C6' not in await pet()
     assert not pg.errs, pg.errs; await b.close()
 
+@T('Đồ theo mùa: 3 chế độ (set / phụ kiện / không), chọn set Giáng sinh, phụ kiện mùa đội quanh năm, dòng lý do')
+async def t_seasonwear(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 12, 10, 9, 0, tzinfo=TZ))
+    pet = lambda: pg.evaluate("document.querySelector('#petSvg').innerHTML")
+    SANTA, NOEL, AODAI = 'M46 80Q50 32', '#D94A4F', '#D7263D'
+    assert SANTA not in await pet() and NOEL not in await pet()   # người mới: không theo mùa
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=wardrobe]')
+    assert 'bộ yêu thích' in await txt(pg, '.whyline')
+    await pg.click('[data-smode=acc]'); assert SANTA in await pet() and NOEL not in await pet()
+    await pg.click('[data-smode=set]'); assert SANTA in await pet() and NOEL in await pet()
+    assert 'Giáng sinh' in await txt(pg, '.whyline')
+    await pg.click('[data-sfit=reindeer]'); assert '#C99D72' in await pet()
+    await pg.click('[data-smode=off]'); assert SANTA not in await pet()
+    await pg.click('[data-wt=acc]'); await pg.click('[data-look=head][data-lv=santa]'); await pg.click('[data-look=scarf][data-lv=red]')
+    p2 = await pet(); assert SANTA in p2 and '#E5484D' in p2
+    await pg.clock.run_for(600); await b.close()
+    b, ctx, pg = await page(p, datetime.datetime(2027, 2, 6, 9, 0, tzinfo=TZ))
+    pet = lambda: pg.evaluate("document.querySelector('#petSvg').innerHTML")
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=wardrobe]'); await pg.click('[data-smode=set]')
+    assert AODAI in await pet() and 'Tết' in await txt(pg, '.whyline')
+    await pg.click('[data-work=start]') if await pg.locator('[data-work=start]').count() else None
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Đồ theo mùa: người dùng cũ (đang bật "mặc theo mùa") chuyển sang "Chỉ thêm phụ kiện mùa"')
+async def t_seasonmig(p):
+    b = await p.chromium.launch(executable_path=CHROME, args=['--no-sandbox'])
+    ctx = await b.new_context(viewport={'width': 390, 'height': 844}, service_workers='block', timezone_id='Asia/Ho_Chi_Minh')
+    pg = await ctx.new_page(); pg.errs = []; pg.on('pageerror', lambda e: pg.errs.append(str(e)))
+    await pg.clock.install(time=datetime.datetime(2026, 12, 10, 9, 0, tzinfo=TZ))
+    await pg.goto(URL + 'README.md')
+    await pg.evaluate("""() => new Promise((res, rej) => { const r = indexedDB.open('cozy-life-os', 4);
+      r.onupgradeneeded = () => ['settings','days','sleeps','snapshots','tasks','workouts','people','appts'].forEach(n => r.result.createObjectStore(n));
+      r.onsuccess = () => { const db = r.result, tx = db.transaction(['settings'], 'readwrite');
+        tx.objectStore('settings').put({ name: 'Lan', v2: true, seasonWear: true }, 'main');
+        tx.oncomplete = () => { db.close(); res(); }; }; r.onerror = rej; })""")
+    await pg.goto(URL); await pg.clock.run_for(1500)
+    assert 'M46 80Q50 32' in await pg.evaluate("document.querySelector('#petSvg').innerHTML")
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=wardrobe]')
+    assert await pg.get_attribute('[data-smode=acc]', 'aria-pressed') == 'true'
+    assert not pg.errs, pg.errs; await b.close()
+
 async def main():
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)

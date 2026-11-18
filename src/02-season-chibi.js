@@ -37,6 +37,17 @@ function season() {
   return null;
 }
 const isXmas = () => season() === 'xmas';
+/* Bộ đồ của set mùa hiện tại (chế độ "Tự mặc set theo mùa") */
+const XMASFITS = ['noel', 'sweater', 'reindeer'];
+function seasonFit() {
+  const se = season();
+  if (se === 'tet') return 'aodai';
+  if (se !== 'xmas') return null;
+  const f = (S.seasonFit || {}).xmas || 'noel';
+  if (f !== 'rand') return OUTFITS[f] ? f : 'noel';
+  const n = Math.floor(new Date(dk(new Date()) + 'T00:00:00') / 864e5);
+  return XMASFITS[n % XMASFITS.length];
+}
 function seasonLabel() {
   const se = season(),
     n = new Date();
@@ -87,15 +98,32 @@ function state() {
     c = d.checkin || {};
   let mood = c.mood || 'calm';
   if (c.body === 'sick') mood = 'sick';
-  let outfit =
-    S.autoSwap && (isNight() || c.body === 'sick') ? S.nightWear : S.autoSwap && c.body === 'sore' ? 'gym' : S.fav;
-  if (activeWo() || (S.autoSwap && outfit === S.fav && S.gym.days.length && planFor(new Date()))) outfit = 'gym';
-  if (outfit === S.fav && S.seasonWear !== false && season() === 'tet' && !(OUTFITS[outfit] || {}).kig)
-    outfit = 'aodai';
-  /* đang check-in công việc → mặc đồ công sở (trừ đồ ngủ, đồ tập, khi ốm) */
-  if (S.workWear !== false && working() && !onBreak() && (outfit === S.fav || outfit === 'aodai') && c.body !== 'sick')
+  /* Thứ tự ưu tiên: đồ ngủ / khi ốm › đồ tập › đồ công sở › set theo mùa › đồ yêu thích */
+  let outfit = S.fav,
+    why = 'fav';
+  if (S.autoSwap && (isNight() || c.body === 'sick')) {
+    outfit = S.nightWear;
+    why = c.body === 'sick' ? 'sick' : 'night';
+  } else if (activeWo()) {
+    outfit = 'gym';
+    why = 'wo';
+  } else if (S.autoSwap && c.body === 'sore') {
+    outfit = 'gym';
+    why = 'sore';
+  } else if (S.autoSwap && S.gym.days.length && planFor(new Date())) {
+    outfit = 'gym';
+    why = 'gymday';
+  } else if (S.workWear !== false && working() && !onBreak()) {
     outfit = OUTFITS[S.workFit] ? S.workFit : 'office';
-  return { mood, outfit };
+    why = 'work';
+  } else if (S.seasonMode === 'set') {
+    const sf = seasonFit();
+    if (sf) {
+      outfit = sf;
+      why = 'season';
+    }
+  }
+  return { mood, outfit, why };
 }
 
 const OUTFITS = {
@@ -486,7 +514,7 @@ function actItem(a) {
 function chibi(o) {
   const hc = o.hairColor || S.hairColor,
     hair = o.hair || S.hair,
-    L = Object.assign({}, LOOKDEF, S.look, o.look || {}, { seasonWear: S.seasonWear }),
+    L = Object.assign({}, LOOKDEF, S.look, o.look || {}),
     sk = '#FFE6D8';
   const k = o.outfit,
     of = OUTFITS[k] || OUTFITS.pink,
@@ -668,18 +696,21 @@ function chibi(o) {
     shoe = kig ? of.k : of.shoe;
   const pose = POSE[o.act] || 'side',
     AF = pj || kig || k === 'sweater' || k === 'aodai' || WORK.includes(k) ? CL : SK;
-  const xw = (o.xw !== undefined ? o.xw : isXmas() && S.seasonWear !== false) && !kig && !o.sleep;
+  /* phụ kiện mùa: tự đội khi chế độ mùa bật (set / chỉ phụ kiện), hoặc tự chọn trong Phụ kiện bất kỳ lúc nào */
+  const auto = o.xw !== undefined ? o.xw : S.seasonMode !== 'off',
+    se = auto ? season() : null,
+    bare = kig || o.sleep;
+  const xw = !bare && (se === 'xmas' || L.head === 'santa');
   const scarf =
-    xw && !pj
+    !bare && !pj && (se === 'xmas' || L.scarf === 'red')
       ? `<path d="M70 147Q100 161 130 147L132 158Q100 173 68 158Z" fill="#E5484D"/><path d="M76 153Q100 164 124 153" stroke="#fff" stroke-width="2.4" fill="none" opacity=".9"/><rect x="113" y="154" width="12" height="30" rx="4" fill="#E5484D" transform="rotate(8 119 154)"/><path d="M114 168h11M114 175h11" stroke="#fff" stroke-width="2.4" transform="rotate(8 119 154)"/>`
       : '';
-  const se = o.xw === false ? null : season(),
-    nyHat =
-      se === 'ny' && S.seasonWear !== false && !kig && !o.sleep
-        ? `<g transform="rotate(16 132 40)"><path d="M113 60L132 4L151 60Z" fill="#F2B544"/><path d="M119 44H145M116 54H148M124 30H140" stroke="#E8505B" stroke-width="3"/><circle cx="132" cy="4" r="6.5" fill="#FF9EB5"/><path d="M113 60Q132 66 151 60" stroke="#fff" stroke-width="3" fill="none"/></g>`
-        : '';
+  const nyHat =
+    !bare && (se === 'ny' || L.head === 'nyhat')
+      ? `<g transform="rotate(16 132 40)"><path d="M113 60L132 4L151 60Z" fill="#F2B544"/><path d="M119 44H145M116 54H148M124 30H140" stroke="#E8505B" stroke-width="3"/><circle cx="132" cy="4" r="6.5" fill="#FF9EB5"/><path d="M113 60Q132 66 151 60" stroke="#fff" stroke-width="3" fill="none"/></g>`
+      : '';
   const tetFlower =
-    se === 'tet' && S.seasonWear !== false && !kig && !o.sleep && L.head === 'none'
+    !bare && ((se === 'tet' && L.head === 'none') || L.head === 'mai')
       ? [0, 72, 144, 216, 288]
           .map(
             a =>

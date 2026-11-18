@@ -77,7 +77,7 @@ const DEF = () => ({
   pendingBed: null,
   sample: false,
   v2: true,
-  seasonWear: true,
+  seasonFit: { xmas: 'noel' },
   theme: 'auto',
   lastBackup: null,
   hideInstall: false,
@@ -122,7 +122,10 @@ function normalize() {
   }
   S.look = Object.assign({}, LOOKDEF0, S.look);
   if (!S.nightWear) S.nightWear = 'pj';
-  if (S.seasonWear === undefined) S.seasonWear = true;
+  /* seasonWear (bản cũ: true/false) → seasonMode: 'set' | 'acc' | 'off' */
+  if (!S.seasonMode) S.seasonMode = S.seasonWear === true ? 'acc' : 'off';
+  delete S.seasonWear;
+  S.seasonFit = Object.assign({ xmas: 'noel' }, S.seasonFit || {});
   if (!S.theme) S.theme = 'auto';
   if (!S.days || typeof S.days !== 'object') S.days = {};
   if (!Array.isArray(S.sleeps)) S.sleeps = [];
@@ -252,6 +255,17 @@ function season() {
   return null;
 }
 const isXmas = () => season() === 'xmas';
+/* Bộ đồ của set mùa hiện tại (chế độ "Tự mặc set theo mùa") */
+const XMASFITS = ['noel', 'sweater', 'reindeer'];
+function seasonFit() {
+  const se = season();
+  if (se === 'tet') return 'aodai';
+  if (se !== 'xmas') return null;
+  const f = (S.seasonFit || {}).xmas || 'noel';
+  if (f !== 'rand') return OUTFITS[f] ? f : 'noel';
+  const n = Math.floor(new Date(dk(new Date()) + 'T00:00:00') / 864e5);
+  return XMASFITS[n % XMASFITS.length];
+}
 function seasonLabel() {
   const se = season(),
     n = new Date();
@@ -302,15 +316,32 @@ function state() {
     c = d.checkin || {};
   let mood = c.mood || 'calm';
   if (c.body === 'sick') mood = 'sick';
-  let outfit =
-    S.autoSwap && (isNight() || c.body === 'sick') ? S.nightWear : S.autoSwap && c.body === 'sore' ? 'gym' : S.fav;
-  if (activeWo() || (S.autoSwap && outfit === S.fav && S.gym.days.length && planFor(new Date()))) outfit = 'gym';
-  if (outfit === S.fav && S.seasonWear !== false && season() === 'tet' && !(OUTFITS[outfit] || {}).kig)
-    outfit = 'aodai';
-  /* đang check-in công việc → mặc đồ công sở (trừ đồ ngủ, đồ tập, khi ốm) */
-  if (S.workWear !== false && working() && !onBreak() && (outfit === S.fav || outfit === 'aodai') && c.body !== 'sick')
+  /* Thứ tự ưu tiên: đồ ngủ / khi ốm › đồ tập › đồ công sở › set theo mùa › đồ yêu thích */
+  let outfit = S.fav,
+    why = 'fav';
+  if (S.autoSwap && (isNight() || c.body === 'sick')) {
+    outfit = S.nightWear;
+    why = c.body === 'sick' ? 'sick' : 'night';
+  } else if (activeWo()) {
+    outfit = 'gym';
+    why = 'wo';
+  } else if (S.autoSwap && c.body === 'sore') {
+    outfit = 'gym';
+    why = 'sore';
+  } else if (S.autoSwap && S.gym.days.length && planFor(new Date())) {
+    outfit = 'gym';
+    why = 'gymday';
+  } else if (S.workWear !== false && working() && !onBreak()) {
     outfit = OUTFITS[S.workFit] ? S.workFit : 'office';
-  return { mood, outfit };
+    why = 'work';
+  } else if (S.seasonMode === 'set') {
+    const sf = seasonFit();
+    if (sf) {
+      outfit = sf;
+      why = 'season';
+    }
+  }
+  return { mood, outfit, why };
 }
 
 const OUTFITS = {
@@ -701,7 +732,7 @@ function actItem(a) {
 function chibi(o) {
   const hc = o.hairColor || S.hairColor,
     hair = o.hair || S.hair,
-    L = Object.assign({}, LOOKDEF, S.look, o.look || {}, { seasonWear: S.seasonWear }),
+    L = Object.assign({}, LOOKDEF, S.look, o.look || {}),
     sk = '#FFE6D8';
   const k = o.outfit,
     of = OUTFITS[k] || OUTFITS.pink,
@@ -883,18 +914,21 @@ function chibi(o) {
     shoe = kig ? of.k : of.shoe;
   const pose = POSE[o.act] || 'side',
     AF = pj || kig || k === 'sweater' || k === 'aodai' || WORK.includes(k) ? CL : SK;
-  const xw = (o.xw !== undefined ? o.xw : isXmas() && S.seasonWear !== false) && !kig && !o.sleep;
+  /* phụ kiện mùa: tự đội khi chế độ mùa bật (set / chỉ phụ kiện), hoặc tự chọn trong Phụ kiện bất kỳ lúc nào */
+  const auto = o.xw !== undefined ? o.xw : S.seasonMode !== 'off',
+    se = auto ? season() : null,
+    bare = kig || o.sleep;
+  const xw = !bare && (se === 'xmas' || L.head === 'santa');
   const scarf =
-    xw && !pj
+    !bare && !pj && (se === 'xmas' || L.scarf === 'red')
       ? `<path d="M70 147Q100 161 130 147L132 158Q100 173 68 158Z" fill="#E5484D"/><path d="M76 153Q100 164 124 153" stroke="#fff" stroke-width="2.4" fill="none" opacity=".9"/><rect x="113" y="154" width="12" height="30" rx="4" fill="#E5484D" transform="rotate(8 119 154)"/><path d="M114 168h11M114 175h11" stroke="#fff" stroke-width="2.4" transform="rotate(8 119 154)"/>`
       : '';
-  const se = o.xw === false ? null : season(),
-    nyHat =
-      se === 'ny' && S.seasonWear !== false && !kig && !o.sleep
-        ? `<g transform="rotate(16 132 40)"><path d="M113 60L132 4L151 60Z" fill="#F2B544"/><path d="M119 44H145M116 54H148M124 30H140" stroke="#E8505B" stroke-width="3"/><circle cx="132" cy="4" r="6.5" fill="#FF9EB5"/><path d="M113 60Q132 66 151 60" stroke="#fff" stroke-width="3" fill="none"/></g>`
-        : '';
+  const nyHat =
+    !bare && (se === 'ny' || L.head === 'nyhat')
+      ? `<g transform="rotate(16 132 40)"><path d="M113 60L132 4L151 60Z" fill="#F2B544"/><path d="M119 44H145M116 54H148M124 30H140" stroke="#E8505B" stroke-width="3"/><circle cx="132" cy="4" r="6.5" fill="#FF9EB5"/><path d="M113 60Q132 66 151 60" stroke="#fff" stroke-width="3" fill="none"/></g>`
+      : '';
   const tetFlower =
-    se === 'tet' && S.seasonWear !== false && !kig && !o.sleep && L.head === 'none'
+    !bare && ((se === 'tet' && L.head === 'none') || L.head === 'mai')
       ? [0, 72, 144, 216, 288]
           .map(
             a =>
@@ -4712,6 +4746,16 @@ function dataCard() {
   <details class="more" style="margin-top:6px"><summary>🧹 Xóa dữ liệu</summary><div class="row" style="margin-top:8px">${S.sleeps.some(x => x.sample) ? '<button class="btn ghost" data-a="clearSample">Xóa dữ liệu mẫu</button>' : ''}<button class="btn ghost" data-a="reset">Xóa hết, làm lại</button></div><p class="muted hide" id="resetQ">Bấm "Xóa hết" lần nữa để xác nhận. (App sẽ chụp lại trước khi xóa.)</p></details></div>`;
 }
 
+const WHY = {
+  fav: () => 'đây là bộ yêu thích của bạn',
+  night: () => 'đã đến giờ đi ngủ',
+  sick: () => 'hôm nay bạn không khỏe',
+  wo: () => 'bạn đang tập',
+  sore: () => 'bạn đang đau nhức cơ',
+  gymday: () => 'hôm nay là ngày tập',
+  work: () => 'bạn đang làm việc',
+  season: () => (season() === 'tet' ? 'đang Tết (set theo mùa)' : 'đang mùa Giáng sinh (set theo mùa)')
+};
 function viewSettings() {
   const st = state(),
     L = S.look;
@@ -4720,7 +4764,7 @@ function viewSettings() {
     return `<button class="wd" data-${attr}="${k}" aria-pressed="${cur === k}">${chibi({ mood: 'calm', outfit: k, still: 1, face: 'smile' })}<b>${o.n}</b><span>${o.d}</span></button>`;
   };
   const grp = (title, key, opts) =>
-    `<div class="q"><h3>${title}</h3><div class="row">${opts.map(([v, t]) => `<button class="chip" data-look="${key}" data-lv="${v}" aria-pressed="${String(key === 'seasonWear' ? S.seasonWear : L[key]) === String(v)}">${t}</button>`).join('')}</div></div>`;
+    `<div class="q"><h3>${title}</h3><div class="row">${opts.map(([v, t]) => `<button class="chip" data-look="${key}" data-lv="${v}" aria-pressed="${String(L[key] || 'none') === String(v)}">${t}</button>`).join('')}</div></div>`;
   const pv =
     wtab === 'night'
       ? S.nightWear
@@ -4729,7 +4773,23 @@ function viewSettings() {
         : st.outfit;
   let body = '';
   if (wtab === 'outfit')
-    body = `<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(
+    body = `<h3 class="wh" style="margin-top:0">🎉 Mặc theo mùa</h3><div class="row">${[
+      ['set', '🎁 Tự mặc set theo mùa'],
+      ['acc', '✨ Chỉ thêm phụ kiện mùa'],
+      ['off', '👗 Không theo mùa']
+    ]
+      .map(([v, t]) => `<button class="chip sm" data-smode="${v}" aria-pressed="${S.seasonMode === v}">${t}</button>`)
+      .join('')}</div><p class="muted" style="margin:6px 0 0">${
+      S.seasonMode === 'set'
+        ? 'Giáng sinh mặc trọn set (váy, mũ Noel, khăn), Năm mới đội mũ tiệc, Tết mặc áo dài cài hoa mai. Hết mùa về đồ bạn chọn.'
+        : S.seasonMode === 'acc'
+          ? 'Giữ đồ đang mặc, chỉ đội thêm mũ Noel, khăn, mũ tiệc hoặc hoa mai theo mùa.'
+          : 'Chibi mặc đúng đồ bạn chọn. Đồ và phụ kiện mùa vẫn mặc được quanh năm như đồ thường.'
+    }</p>${
+      S.seasonMode === 'set'
+        ? `<div class="q" style="margin-top:8px"><h3>Set Giáng sinh</h3><div class="row">${[...XMASFITS.map(k => [k, OUTFITS[k].n]), ['rand', '🎲 Mỗi ngày một bộ']].map(([k, n]) => `<button class="chip sm" data-sfit="${k}" aria-pressed="${(S.seasonFit.xmas || 'noel') === k}">${n}</button>`).join('')}</div></div>`
+        : ''
+    }<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(
       k => !XMAS.includes(k) && !TETW.includes(k) && !WORK.includes(k)
     )
       .map(k => card(k, 'fav', S.fav))
@@ -4752,11 +4812,14 @@ function viewSettings() {
         ['band', 'Bờm ngọc'],
         ['pearl', 'Kẹp ngọc trai'],
         ['flower', '🌼 Kẹp hoa'],
-        ['beanie', '🧶 Mũ len']
+        ['beanie', '🧶 Mũ len'],
+        ['santa', '🎅 Mũ Noel'],
+        ['nyhat', '🎉 Mũ tiệc'],
+        ['mai', '🌼 Hoa mai']
       ]) +
-      grp('🎉 Đồ theo mùa', 'seasonWear', [
-        [true, 'Mặc theo mùa (mũ Noel, mũ tiệc, áo dài Tết)'],
-        [false, 'Không']
+      grp('Khăn quàng', 'scarf', [
+        ['none', 'Không'],
+        ['red', '🧣 Khăn len đỏ']
       ]) +
       grp('Bông tai', 'ear', [
         ['none', 'Không'],
@@ -4813,7 +4876,8 @@ function viewSettings() {
   ];
   const SEC = {
     wardrobe: () => `<div class="card"><h2>👗 Phòng thay đồ</h2>
-  <div class="mirror">${chibi({ mood: 'calm', outfit: pv, face: L.face === 'auto' ? 'smile' : L.face })}</div>  <div class="wtabs scroll">${WT.map(([k, t]) => `<button data-wt="${k}" aria-pressed="${wtab === k}">${t}</button>`).join('')}</div>
+  <div class="mirror">${chibi({ mood: 'calm', outfit: pv, face: L.face === 'auto' ? 'smile' : L.face })}</div>
+  <p class="muted whyline">Hôm nay Chibi mặc <b>${OUTFITS[st.outfit] ? OUTFITS[st.outfit].n : ''}</b> vì ${WHY[st.why] ? WHY[st.why]() : 'đây là bộ yêu thích của bạn'}.</p>  <div class="wtabs scroll">${WT.map(([k, t]) => `<button data-wt="${k}" aria-pressed="${wtab === k}">${t}</button>`).join('')}</div>
   ${body}</div>
   `,
     season: () => `  <div class="card"><h2>🎨 Giao diện theo mùa</h2><div class="row">${[
@@ -5093,7 +5157,7 @@ function seasonGreet() {
     );
   }, 1500);
 }
-const APPVER = '2026.11.18-13';
+const APPVER = '2026.11.18-14';
 const TABS = [
   ['today', '☀️', 'Hôm nay'],
   ['tasks', '📋', 'Việc'],
@@ -5595,13 +5659,22 @@ document.addEventListener('click', async e => {
     let v = t.dataset.lv;
     if (v === 'true') v = true;
     else if (v === 'false') v = false;
-    if (k === 'seasonWear') S.seasonWear = v;
-    else S.look[k] = v;
+    S.look[k] = v;
     render();
     return;
   }
   if (t.dataset.swap) {
     S.autoSwap = !S.autoSwap;
+    render();
+    return;
+  }
+  if (t.dataset.smode) {
+    S.seasonMode = t.dataset.smode;
+    render();
+    return;
+  }
+  if (t.dataset.sfit) {
+    S.seasonFit.xmas = t.dataset.sfit;
     render();
     return;
   }

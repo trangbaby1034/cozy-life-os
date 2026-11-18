@@ -73,7 +73,7 @@ const DEF = () => ({
   pendingBed: null,
   sample: false,
   v2: true,
-  seasonWear: true,
+  seasonFit: { xmas: 'noel' },
   theme: 'auto',
   lastBackup: null,
   hideInstall: false,
@@ -118,7 +118,10 @@ function normalize() {
   }
   S.look = Object.assign({}, LOOKDEF0, S.look);
   if (!S.nightWear) S.nightWear = 'pj';
-  if (S.seasonWear === undefined) S.seasonWear = true;
+  /* seasonWear (bản cũ: true/false) → seasonMode: 'set' | 'acc' | 'off' */
+  if (!S.seasonMode) S.seasonMode = S.seasonWear === true ? 'acc' : 'off';
+  delete S.seasonWear;
+  S.seasonFit = Object.assign({ xmas: 'noel' }, S.seasonFit || {});
   if (!S.theme) S.theme = 'auto';
   if (!S.days || typeof S.days !== 'object') S.days = {};
   if (!Array.isArray(S.sleeps)) S.sleeps = [];

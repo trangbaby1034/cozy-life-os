@@ -224,13 +224,22 @@ document.addEventListener('click', async e => {
     let v = t.dataset.lv;
     if (v === 'true') v = true;
     else if (v === 'false') v = false;
-    if (k === 'seasonWear') S.seasonWear = v;
-    else S.look[k] = v;
+    S.look[k] = v;
     render();
     return;
   }
   if (t.dataset.swap) {
     S.autoSwap = !S.autoSwap;
+    render();
+    return;
+  }
+  if (t.dataset.smode) {
+    S.seasonMode = t.dataset.smode;
+    render();
+    return;
+  }
+  if (t.dataset.sfit) {
+    S.seasonFit.xmas = t.dataset.sfit;
     render();
     return;
   }
