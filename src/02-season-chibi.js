@@ -92,6 +92,9 @@ function state() {
   if (activeWo() || (S.autoSwap && outfit === S.fav && S.gym.days.length && planFor(new Date()))) outfit = 'gym';
   if (outfit === S.fav && S.seasonWear !== false && season() === 'tet' && !(OUTFITS[outfit] || {}).kig)
     outfit = 'aodai';
+  /* đang check-in công việc → mặc đồ công sở (trừ đồ ngủ, đồ tập, khi ốm) */
+  if (S.workWear !== false && working() && !onBreak() && (outfit === S.fav || outfit === 'aodai') && c.body !== 'sick')
+    outfit = OUTFITS[S.workFit] ? S.workFit : 'office';
   return { mood, outfit };
 }
 
@@ -110,10 +113,26 @@ const OUTFITS = {
   reindeer: { n: 'Tuần lộc', d: 'Đồ bộ có gạc và mũi đỏ', c: '#C99D72', k: '#A67B52', b: '#F3E1C8', kig: 1 },
   pj: { n: 'Pijama chấm bi', d: 'Đồ ngủ cơ bản', c: '#CDBEF5', k: '#B9A6EE', shoe: '#B9A6EE' },
   gym: { n: 'Đồ tập', d: 'Tự mặc khi đau nhức cơ', c: '#8FD9B6', k: '#6FC59F', shoe: '#FFFFFF', auto: 1 },
-  aodai: { n: 'Áo dài đỏ', d: 'Áo dài Tết thêu hoa mai vàng', c: '#D7263D', k: '#A81C2E', shoe: '#F4C430' }
+  aodai: { n: 'Áo dài đỏ', d: 'Áo dài Tết thêu hoa mai vàng', c: '#D7263D', k: '#A81C2E', shoe: '#F4C430' },
+  office: {
+    n: 'Vest công sở',
+    d: 'Vest be, sơ mi trắng, chân váy bút chì',
+    c: '#D8C3A5',
+    k: '#B89F7E',
+    shoe: '#2E2A33'
+  },
+  office2: {
+    n: 'Sơ mi & quần âu',
+    d: 'Sơ mi trắng nơ hồng, quần âu xanh than',
+    c: '#FAF8F4',
+    k: '#DCD6CC',
+    shoe: '#2E2A33'
+  },
+  office3: { n: 'Blazer hồng', d: 'Blazer hồng phấn, chân váy chữ A kem', c: '#F2B8C6', k: '#DE97A9', shoe: '#F7EFE6' }
 };
 const TETW = ['aodai'],
-  DAY = ['pink', 'beige', 'lace', 'fluffy', 'brocade', 'noel', 'sweater', 'aodai'],
+  WORK = ['office', 'office2', 'office3'],
+  DAY = ['pink', 'beige', 'lace', 'fluffy', 'brocade', 'noel', 'sweater', 'aodai', 'office', 'office2', 'office3'],
   KIG = ['dino', 'bear', 'bunny', 'cat'],
   XMAS = ['noel', 'sweater', 'reindeer'],
   NIGHT = ['pj', 'dino', 'bear', 'bunny', 'cat', 'reindeer'];
@@ -267,6 +286,28 @@ function outfitSvg(k, cf) {
             `<g fill="#F4C430"><circle cx="${x}" cy="${y}" r="2"/><circle cx="${x - 3}" cy="${y - 2}" r="1.6"/><circle cx="${x + 3}" cy="${y - 2}" r="1.6"/><circle cx="${x - 2}" cy="${y + 2.6}" r="1.6"/><circle cx="${x + 2}" cy="${y + 2.6}" r="1.6"/></g>`
         )
         .join('')
+    );
+  if (k === 'office')
+    return (
+      `<path d="M66 190H134L130 215Q100 220 70 215Z" fill="#3E3A4A"/><path d="M100 196V216" stroke="#2B2834" stroke-width="1.4"/>` +
+      `<path d="M67 146Q100 136 133 146L136 194Q100 200 64 194Z" fill="${c}"/><path d="M89 145L100 172L111 145Z" fill="#FFFFFF"/><path d="M95 145L100 152L105 145" fill="none" stroke="#E4DED5" stroke-width="1.4"/>` +
+      `<path d="M89 145L100 172L93 178L82 150Z" fill="${dk}"/><path d="M111 145L100 172L107 178L118 150Z" fill="${dk}"/><circle cx="100" cy="181" r="2" fill="${dk}"/><circle cx="100" cy="189" r="2" fill="${dk}"/><path d="M114 182h9" stroke="${dk}" stroke-width="2" stroke-linecap="round"/>` +
+      `<path d="M92 147L104 176M108 147L104 176" stroke="#6C8EBF" stroke-width="1.6" fill="none"/><rect x="98" y="174" width="13" height="16" rx="2.5" fill="#fff" stroke="#CFC8BE"/><rect x="98" y="174" width="13" height="4" rx="1.5" fill="#6C8EBF"/><circle cx="104.5" cy="182" r="2.2" fill="#E8C9B8"/><path d="M101 187h7" stroke="#CFC8BE" stroke-width="1.2"/>`
+    );
+  if (k === 'office2')
+    return (
+      `<path d="M66 186H134L136 204H64Z" fill="#3B4A6B"/><rect x="96" y="187" width="8" height="5" rx="1.5" fill="#D9B65C"/>` +
+      `<path d="M68 148Q100 140 132 148L134 188Q100 192 66 188Z" fill="${c}"/><path d="M84 145L100 154L116 145L112 156L100 152L88 156Z" fill="#FFFFFF" stroke="${dk}" stroke-width="1.2"/>` +
+      `<path d="M100 157V186" stroke="${dk}" stroke-width="1.2"/><circle cx="100" cy="166" r="1.5" fill="${dk}"/><circle cx="100" cy="176" r="1.5" fill="${dk}"/>` +
+      `<path d="M100 152L90 147L91 158Z M100 152L110 147L109 158Z" fill="#F29BB0"/><circle cx="100" cy="152" r="2.6" fill="#E57F99"/>` +
+      `<path d="M90 156L104 176M110 156L104 176" stroke="#6C8EBF" stroke-width="1.6" fill="none"/><rect x="98" y="174" width="13" height="16" rx="2.5" fill="#fff" stroke="#CFC8BE"/><rect x="98" y="174" width="13" height="4" rx="1.5" fill="#6C8EBF"/><circle cx="104.5" cy="182" r="2.2" fill="#E8C9B8"/><path d="M101 187h7" stroke="#CFC8BE" stroke-width="1.2"/>`
+    );
+  if (k === 'office3')
+    return (
+      `<path d="M72 188H128Q144 200 140 214Q100 222 60 214Q56 200 72 188Z" fill="#F4EBDD"/><path d="M72 190Q100 196 128 190" fill="none" stroke="#E2D5C2" stroke-width="2"/>` +
+      `<path d="M67 146Q100 136 133 146L135 192Q100 197 65 192Z" fill="${c}"/><path d="M90 145L100 168L110 145Z" fill="#FFF8F2"/><path d="M90 145L100 168L95 173L83 150Z" fill="${dk}"/><path d="M110 145L100 168L105 173L117 150Z" fill="${dk}"/>` +
+      `<circle cx="100" cy="178" r="2.2" fill="#F7EFE6"/><path d="M86 160l3 3 3-3" stroke="#fff" stroke-width="1.3" fill="none"/>` +
+      `<g transform="translate(116 160)"><path d="M0 0l2 -4 2 4z" fill="#fff"/><circle cx="2" cy="2" r="1.6" fill="#FFD24D"/></g>`
     );
   if (k === 'gym')
     return `<path d="M72 152Q100 146 128 152L134 188L66 188Z" fill="${c}"/><rect x="66" y="184" width="68" height="22" rx="8" fill="#7C6BA8"/>`;
@@ -623,10 +664,10 @@ function chibi(o) {
   const blanket = o.sleep
     ? `<path d="M30 168Q100 140 170 168L176 232H24Z" fill="#DED2F9"/><path d="M30 168Q100 140 170 168" fill="none" stroke="#fff" stroke-width="6" opacity=".7"/>`
     : '';
-  const legC = kig ? CL : k === 'aodai' ? '#FFF8F0' : SK,
+  const legC = kig ? CL : k === 'aodai' ? '#FFF8F0' : k === 'office2' ? '#3B4A6B' : SK,
     shoe = kig ? of.k : of.shoe;
   const pose = POSE[o.act] || 'side',
-    AF = pj || kig || k === 'sweater' || k === 'aodai' ? CL : SK;
+    AF = pj || kig || k === 'sweater' || k === 'aodai' || WORK.includes(k) ? CL : SK;
   const xw = (o.xw !== undefined ? o.xw : isXmas() && S.seasonWear !== false) && !kig && !o.sleep;
   const scarf =
     xw && !pj

@@ -5,8 +5,12 @@
 function workCfg() {
   return (S.work = Object.assign({ goal: 8, stretch: true, over: true }, S.work || {}));
 }
-const working = () => !!(S.workNow && S.workNow.start);
-const onBreak = () => working() && !!S.workNow.brkAt;
+function working() {
+  return !!(S.workNow && S.workNow.start);
+}
+function onBreak() {
+  return working() && !!S.workNow.brkAt;
+}
 const worksOf = d => (d && d.work) || [];
 const sessMs = w => Math.max(0, new Date(w.e) - new Date(w.s) - (w.brk || 0));
 function liveMs() {

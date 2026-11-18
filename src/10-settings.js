@@ -65,12 +65,12 @@ function viewSettings() {
   let body = '';
   if (wtab === 'outfit')
     body = `<h3 class="wh">Váy áo hằng ngày</h3><div class="wgrid">${DAY.filter(
-      k => !XMAS.includes(k) && !TETW.includes(k)
+      k => !XMAS.includes(k) && !TETW.includes(k) && !WORK.includes(k)
     )
       .map(k => card(k, 'fav', S.fav))
       .join(
         ''
-      )}</div><h3 class="wh">🧧 Tết</h3><div class="wgrid">${TETW.map(k => card(k, 'fav', S.fav)).join('')}</div><h3 class="wh">🎄 Giáng sinh</h3><div class="wgrid">${XMAS.map(k => card(k, 'fav', S.fav)).join('')}</div><h3 class="wh">Đồ bộ cute</h3><div class="wgrid">${KIG.map(k => card(k, 'fav', S.fav)).join('')}</div>`;
+      )}</div><h3 class="wh">💼 Công sở</h3><p class="muted" style="margin:0 0 8px">Chạm một lần để mặc hằng ngày. Bộ có dấu 💼 là bộ Chibi tự thay khi bạn bấm "Bắt đầu làm việc".</p><div class="wgrid">${WORK.map(k => card(k, 'fav', S.fav).replace('<b>', (OUTFITS[S.workFit] ? S.workFit : 'office') === k ? '<b>💼 ' : '<b>')).join('')}</div><div class="row" style="margin-top:10px"><button class="chip sm" data-workwear="1" aria-pressed="${S.workWear !== false}">💼 Tự mặc đồ công sở khi đang làm việc</button></div><div class="row" style="margin-top:8px">${WORK.map(k => `<button class="chip sm" data-workfit="${k}" aria-pressed="${(OUTFITS[S.workFit] ? S.workFit : 'office') === k}">${OUTFITS[k].n}</button>`).join('')}</div><h3 class="wh">🧧 Tết</h3><div class="wgrid">${TETW.map(k => card(k, 'fav', S.fav)).join('')}</div><h3 class="wh">🎄 Giáng sinh</h3><div class="wgrid">${XMAS.map(k => card(k, 'fav', S.fav)).join('')}</div><h3 class="wh">Đồ bộ cute</h3><div class="wgrid">${KIG.map(k => card(k, 'fav', S.fav)).join('')}</div>`;
   if (wtab === 'night')
     body = `<p class="muted" style="margin:0 0 10px">Bộ Chibi tự mặc vào buổi tối và khi bạn ốm.</p><div class="wgrid">${NIGHT.map(k => card(k, 'nw', S.nightWear)).join('')}</div><div class="row" style="margin-top:12px"><button class="chip" data-swap="1" aria-pressed="${S.autoSwap}">Tự thay đồ ngủ buổi tối, khi ốm và đồ tập khi đau cơ</button></div>`;
   if (wtab === 'acc')

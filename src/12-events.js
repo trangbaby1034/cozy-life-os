@@ -234,6 +234,16 @@ document.addEventListener('click', async e => {
     render();
     return;
   }
+  if (t.dataset.workwear) {
+    S.workWear = S.workWear === false;
+    render();
+    return;
+  }
+  if (t.dataset.workfit) {
+    S.workFit = t.dataset.workfit;
+    render();
+    return;
+  }
   if (t.dataset.theme) {
     S.theme = t.dataset.theme;
     render();

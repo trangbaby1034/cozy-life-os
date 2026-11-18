@@ -373,6 +373,21 @@ async def t_work(p):
     t = await txt(pg, '#sheet'); assert await pg.locator('[data-wks]').count() == 2 and ('Tổng: 8g5' in t or 'Tổng: 9g' in t), t
     assert not pg.errs, pg.errs; await b.close()
 
+@T('Đồ công sở: tự mặc khi đang làm việc, nghỉ thì thay lại, chọn bộ, tắt được')
+async def t_office(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 10, 8, 9, 0, tzinfo=TZ))
+    pet = lambda: pg.evaluate("document.querySelector('#petSvg').innerHTML")
+    assert '#D8C3A5' not in await pet()
+    await pg.click('[data-work=start]'); await pg.clock.run_for(500)
+    assert '#D8C3A5' in await pet()
+    await pg.click('[data-work=brk]'); assert '#D8C3A5' not in await pet()
+    await pg.click('[data-work=brk]')
+    await pg.click('[data-tab=set]'); await pg.click('[data-sp=wardrobe]')
+    assert await pg.locator('.wd[data-fav=office3]').count() == 1
+    await pg.click('[data-workfit=office3]'); assert '#F2B8C6' in await pet()
+    await pg.click('[data-workwear]'); assert '#F2B8C6' not in await pet()
+    assert not pg.errs, pg.errs; await b.close()
+
 async def main():
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)

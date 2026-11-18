@@ -86,7 +86,7 @@ function seasonGreet() {
     );
   }, 1500);
 }
-const APPVER = '2026.11.18-12';
+const APPVER = '2026.11.18-13';
 const TABS = [
   ['today', '☀️', 'Hôm nay'],
   ['tasks', '📋', 'Việc'],
