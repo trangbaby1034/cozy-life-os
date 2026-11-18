@@ -30,7 +30,7 @@ def T(name):
                 await fn(p); results.append((name, True, '')); print(f'✅ {name} ({time.time()-t0:.1f}s)')
             except Exception as e:
                 import traceback; ln = traceback.extract_tb(e.__traceback__)[-1].lineno
-                results.append((name, False, repr(e)[:300])); print(f'❌ {name} (dòng {ln}): {repr(e)[:300]}')
+                results.append((name, False, repr(e)[:300])); print(f'❌ {name} (dòng {ln}): {repr(e)[:2000]}')
         run.__name__ = name; TESTS.append(run); return run
     return deco
 TESTS = []
@@ -188,7 +188,7 @@ async def t_cards(p):
     assert await pg.locator('.blk.pend').count() == 0
     await pg.click('[data-spgo=todaycards]')
     await pg.click('[data-ctog=notes]')
-    for _ in range(5): await pg.click('[data-cmove="habits:-1"]')
+    for _ in range(6): await pg.click('[data-cmove="habits:-1"]')
     await pg.click('[data-tab=today]')
     assert await pg.locator('#nNew').count() == 0
     order = await pg.evaluate("[...document.querySelectorAll('#view > .card h2')].map(h=>h.textContent.slice(0,14))")
@@ -309,6 +309,33 @@ async def t_people2(p):
     assert 'gặp hôm nay' in await txt(pg, '.prow')
     await pg.clock.run_for(600); await pg.reload(); await pg.clock.run_for(1500)
     await pg.click('[data-tab=people]'); assert 'Bé Na' in await txt(pg, '#view')
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Ngủ trưa: Chibi rủ, đếm ngược, chuông gọi dậy, ghi lại, mở lại app giữa giấc')
+async def t_nap(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 18, 12, 20, tzinfo=TZ))
+    assert 'Ngủ trưa' in await txt(pg, '.napcard')
+    assert '☀️ Ngủ trưa' in await txt(pg, '#view')
+    await pg.clock.fast_forward(5 * 60000); await pg.clock.run_for(36000)
+    assert 'Đến giờ ngủ trưa' in await txt(pg, '#nudge.show'); await pg.click('[data-nudge=b0]'); await pg.clock.run_for(1200)
+    assert await pg.locator('#napcover.on').count() == 1
+    assert (await txt(pg, '#napLeft')).startswith('19:') or (await txt(pg, '#napLeft')).startswith('20:')
+    await pg.clock.fast_forward(20 * 60000); await pg.clock.run_for(2000)
+    assert await pg.locator('#napcover.waking').count() == 1
+    await pg.click('#napcover [data-nap=wake]')
+    assert 'Đã ngủ trưa' in await txt(pg, '#sheet'); await pg.click('[data-napfeel=groggy]')
+    assert 'Đã ngủ trưa' in await txt(pg, '.napcard') and '😵‍💫 Lừ đừ' in await txt(pg, '.napcard')
+    assert await pg.locator('.sitem.done:has-text("Ngủ trưa")').count() == 1
+    await pg.click('[data-tab=health]'); await pg.click('[data-htab=sleep]')
+    v = await txt(pg, '#view'); assert 'Ngủ trưa' in v and 'Lần' in v, v
+    await pg.click('[data-nap=sheet]'); await pg.click('[data-napl="90"]')
+    assert 'trọn một chu kỳ' in await txt(pg, '#napHint')
+    await pg.click('[data-nap=go]'); await pg.clock.run_for(600 + 10 * 60000)
+    await pg.reload(); await pg.clock.run_for(1500)
+    assert await pg.locator('#napcover.on').count() == 1 and (await txt(pg, '#napLeft')).startswith('7')
+    await pg.click('#napcover [data-nap=wake]'); await pg.click('[data-napfeel=fresh]')
+    await pg.click('[data-tab=health]'); await pg.click('[data-htab=sleep]')
+    assert '2' in await txt(pg, '.stat3')
     assert not pg.errs, pg.errs; await b.close()
 
 async def main():

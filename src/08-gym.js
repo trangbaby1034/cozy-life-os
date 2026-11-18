@@ -622,4 +622,4 @@ function woHistSheet(id) {
   ${w.items.map(it => `<p style="margin:8px 0"><b>${esc((exById(it.ex) || {}).n || it.ex)}</b>${(w.prs || []).includes(it.ex) ? ' 🏆' : ''}<br><span class="muted">${it.sets.map(s => s.r + (s.kg ? '×' + s.kg + 'kg' : '') + (s.f ? ' (' + { e: 'dễ', m: 'vừa', h: 'nặng' }[s.f] + ')' : '')).join(' · ')}</span></p>`).join('')}
   <div class="row" style="margin-top:14px"><button class="btn ghost" data-a="closeSheet">Đóng</button><button class="btn ghost danger" data-wohdel="${w.id}">Xóa buổi này</button></div>`);
 }
-const dnd = () => focusing() || !!activeWo();
+const dnd = () => focusing() || !!activeWo() || napping();

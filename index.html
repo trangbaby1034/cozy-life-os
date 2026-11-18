@@ -292,6 +292,9 @@ details.more summary::after{content:' ▾';color:var(--soft)}
 .grow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px dashed var(--line);padding:8px 0}.grow>.inp:first-child{flex:1;min-width:0}.gprice{max-width:110px}.grow .gst{width:100%}.grow.done>.inp:first-child{text-decoration:line-through;color:var(--soft)}
 #pGiftF .inp:first-child{flex:1;min-width:0}
 .balloon{animation:bfloat 3.2s ease-in-out infinite;transform-origin:160px 176px}@keyframes bfloat{50%{transform:rotate(4deg) translateY(-3px)}}.calm .balloon{animation:none}
+.napcover{position:fixed;inset:0;z-index:31;display:none;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(circle at 50% 28%,#5B4A7A,#241C33);color:#F7EEFF;text-align:center;padding:24px}.napcover.on{display:flex}.napcover.waking{background:radial-gradient(circle at 50% 28%,#FFE9C7,#FFC9B5);color:#4A3E3D}
+.napcover h2{margin:0}.napclock{font-size:56px;font-weight:800;margin:0;font-variant-numeric:tabular-nums;letter-spacing:1px}.napsub{margin:0;opacity:.85}.napnote{font-size:13px;opacity:.7;max-width:310px;margin:6px 0 0}.napnote .btn{margin-top:8px;color:inherit;border-color:rgba(255,255,255,.35);background:transparent}.napcover.waking .napclock{animation:napbuzz 1s ease-in-out infinite}@keyframes napbuzz{50%{transform:scale(1.08)}}.calm .napcover.waking .napclock{animation:none}
+.napgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.napgrid .chip{display:flex;flex-direction:column;align-items:flex-start;padding:10px 14px;border-radius:16px;min-height:auto}.napgrid .chip b{font-size:20px}.napgrid .chip i{font-style:normal;font-size:12px;color:var(--soft)}
 </style>
 </head>
 <body>

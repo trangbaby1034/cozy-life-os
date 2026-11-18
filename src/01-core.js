@@ -132,6 +132,7 @@ function normalize() {
   );
   if (!Array.isArray(S.people)) S.people = [];
   if (!Array.isArray(S.appts)) S.appts = [];
+  S.nap = Object.assign({ time: '12:30', len: 20, remind: 'chibi', sched: true, sound: 'none' }, S.nap || {});
   if (!S.nudgeLog || typeof S.nudgeLog !== 'object') S.nudgeLog = {};
   S.gym = Object.assign(
     { days: [], time: '18:00', goal: 'muscle', equip: 'gym', rest: 90, remind: 'cal', bell: false },

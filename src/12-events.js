@@ -92,6 +92,7 @@ document.addEventListener('click', async e => {
     if (k === 'r' || k === 's') schedSheet(k, id);
     else if (k === 't') taskSheet(id);
     else if (k === 'a') apptSheet(id);
+    else if (k === 'n') napSheet();
     else if (k === 'g') {
       tab = 'health';
       htab = 'gym';
@@ -993,6 +994,10 @@ document.addEventListener('change', e => {
     } else if (k === 'a') {
       const ap = apptById(id);
       if (ap) apptDone(ap, t.checked);
+    } else if (k === 'n') {
+      t.checked = !t.checked;
+      napSheet();
+      return;
     } else {
       t.checked = !t.checked;
       if (k === 'g') {

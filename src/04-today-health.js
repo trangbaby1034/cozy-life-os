@@ -30,6 +30,7 @@ const TCARDS = [
   ['top3', '⭐', '3 việc quan trọng nhất'],
   ['sched', '🕒', 'Thời gian biểu & việc cần làm'],
   ['gym', '🏋️', 'Ngày tập Gym'],
+  ['nap', '😴', 'Ngủ trưa'],
   ['people', '💌', 'Người thương sắp tới'],
   ['bells', '🔔', 'Chưa có chuông (việc, sinh nhật, hẹn)'],
   ['habits', '🌱', 'Thói quen & uống nước'],
@@ -87,6 +88,7 @@ function viewToday() {
     return '';
   };
   C.people = () => peopleCard();
+  C.nap = () => napCard();
   C.bells = () => {
     const nb = S.tasks.filter(needsBell).sort(sortTasks),
       pb = peopleBellRows();
@@ -220,7 +222,10 @@ function waterDaySheet(k) {
 function viewSleep() {
   const L = S.sleeps.slice(-7);
   if (!L.length)
-    return `<div class="card"><h2>😴 Giấc ngủ</h2><p class="muted">Chưa có dữ liệu. Tối nay bấm "Đi ngủ" ở tab Hôm nay nhé!</p></div>`;
+    return (
+      `<div class="card"><h2>😴 Giấc ngủ</h2><p class="muted">Chưa có dữ liệu. Tối nay bấm "Đi ngủ" ở tab Hôm nay nhé!</p></div>` +
+      napHealth()
+    );
   const dur = x => (new Date(x.wake) - new Date(x.bed)) / 36e5;
   const off = d => {
     let h = d.getHours() + d.getMinutes() / 60 - 20;
@@ -250,5 +255,6 @@ function viewSleep() {
     <div class="stat3"><div><b>${avg.toFixed(1)}h</b>TB mỗi đêm</div><div><b>${toClock(ab)}</b>Giờ ngủ TB</div><div><b>±${Math.round(spread)}′</b>Độ đều đặn</div></div>
     ${rows}<div class="axis"><span></span><span><i>20h</i><i>0h</i><i>4h</i><i>8h</i><i>12h</i></span><span></span></div>
     <p class="muted" style="margin:10px 0 0">Vạch đứt màu đào là giờ đi ngủ mục tiêu (${S.bedTarget}).${L.some(x => x.sample) ? ' Một số đêm là dữ liệu mẫu, có thể xóa trong Cài đặt.' : ''}</p></div>
+    ${napHealth()}
     <div class="card"><h2>Sắp có ở bước sau</h2><p class="muted" style="margin:0">Hồ sơ sức khỏe, tủ thuốc, nhật ký triệu chứng, nợ ngủ trong tuần.</p></div>`;
 }

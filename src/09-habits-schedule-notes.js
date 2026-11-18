@@ -127,6 +127,8 @@ function schedItems() {
   S.appts
     .filter(a => a.date === td && a.time)
     .forEach(a => L.push({ kind: 'a', id: a.id, t: a.time, title: '💌 ' + (a.title || 'Lịch hẹn'), done: !!a.done }));
+  if (napCfg().sched)
+    L.push({ kind: 'n', id: 'nap', t: S.nap.time, title: '☀️ Ngủ trưa', done: napsOf(d).length > 0, rep: 1 });
   L.push({ kind: 'b', id: 'bed', t: S.bedTarget, title: '😴 Đi ngủ', done: !!d.evening });
   const key = t => {
     let [h, m] = t.split(':').map(Number);

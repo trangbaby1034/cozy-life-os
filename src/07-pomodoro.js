@@ -119,13 +119,14 @@ function pomoStop(mode) {
 }
 let noiseNode = null,
   wakeLk = null;
-function startNoise() {
+function startNoise(kind) {
+  kind = kind || S.pomoSound;
   stopNoise();
-  if (S.pomoSound === 'none' || !S.pomoSound) return;
+  if (kind === 'none' || !kind) return;
   try {
     if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
     AC.resume();
-    const rain = S.pomoSound === 'rain',
+    const rain = kind === 'rain',
       len = AC.sampleRate * 6,
       buf = AC.createBuffer(1, len, AC.sampleRate),
       ch = buf.getChannelData(0);
