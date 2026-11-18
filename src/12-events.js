@@ -91,6 +91,7 @@ document.addEventListener('click', async e => {
     const [k, id] = t.dataset.sopen.split(':');
     if (k === 'r' || k === 's') schedSheet(k, id);
     else if (k === 't') taskSheet(id);
+    else if (k === 'a') apptSheet(id);
     else if (k === 'g') {
       tab = 'health';
       htab = 'gym';
@@ -989,6 +990,9 @@ document.addEventListener('change', e => {
     } else if (k === 't') {
       const tk = taskById(id);
       if (tk) setDone(tk, t.checked);
+    } else if (k === 'a') {
+      const ap = apptById(id);
+      if (ap) apptDone(ap, t.checked);
     } else {
       t.checked = !t.checked;
       if (k === 'g') {
@@ -1123,8 +1127,17 @@ document.addEventListener('submit', e => {
   if (!v || candyBusy) return;
   candyDrop(v);
 });
+const dropEmptyPerson = () => {
+  const p = personById(pEdit);
+  if (p && !p.name && !p.bday && !(p.gifts || []).length && !(p.wish || []).length)
+    S.people = S.people.filter(x => x !== p);
+  pEdit = null;
+  aEdit = null;
+};
 $('#sheetbg').addEventListener('click', e => {
   if (e.target.id === 'sheetbg') {
+    dropEmptyPerson();
+    render();
     closeSheet();
     pendingImport = null;
     editId = null;
@@ -1132,6 +1145,7 @@ $('#sheetbg').addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') {
+    dropEmptyPerson();
     closeSheet();
     editId = null;
   }

@@ -30,7 +30,8 @@ const TCARDS = [
   ['top3', '⭐', '3 việc quan trọng nhất'],
   ['sched', '🕒', 'Thời gian biểu & việc cần làm'],
   ['gym', '🏋️', 'Ngày tập Gym'],
-  ['bells', '🔔', 'Việc chưa có chuông'],
+  ['people', '💌', 'Người thương sắp tới'],
+  ['bells', '🔔', 'Chưa có chuông (việc, sinh nhật, hẹn)'],
   ['habits', '🌱', 'Thói quen & uống nước'],
   ['candy', '🍬', 'Lọ Kẹo Niềm Vui'],
   ['notes', '📝', 'Ghi chú nhanh']
@@ -68,7 +69,9 @@ function viewToday() {
     <div class="sum"><div><b>${label(MOODS, c.mood)}</b>Tâm trạng</div><div><b>${label(WEATHER, c.weather)}</b>Thời tiết</div><div><b>🔋${c.energy}</b>Năng lượng</div><div><b>${label(BODY, c.body)}</b>Cơ thể</div></div>
     ${suggestions()
       .map(t => `<div class="tip">${t}</div>`)
-      .join('')}${d.lazy ? '' : '<button class="linkbtn" data-a="lazyOn">🛋️ Hôm nay muốn nghỉ? Bật Ngày Lười Biếng</button>'}</div>`;
+      .join(
+        ''
+      )}${d.lazy ? '' : '<button class="linkbtn" data-a="lazyOn">🛋️ Hôm nay muốn nghỉ? Bật Ngày Lười Biếng</button>'}</div>`;
   C.top3 = () => {
     const T3 = d.top3.map(top3Slot);
     return `<div class="card"><h2>3 việc quan trọng nhất <small>${T3.filter(x => x.d && x.t).length}/3</small></h2>${T3.map((x, i) => `<div class="task ${x.d ? 'done' : ''}"><input type="checkbox" data-t="${i}" ${x.d ? 'checked' : ''} aria-label="Xong việc ${i + 1}">${x.tid ? `<button class="t3link" data-topen="${x.tid}">⭐ ${esc(x.t)}</button>` : `<input type="text" data-tt="${i}" value="${esc(x.t)}" placeholder="Việc số ${i + 1}…">`}</div>`).join('')}${!T3.some(x => x.tid) && S.tasks.some(t => !t.done) ? '<p class="muted" style="margin:6px 0 0">Mẹo: bấm ⭐ ở tab Việc để đưa việc lên đây.</p>' : ''}</div>`;
@@ -83,10 +86,12 @@ function viewToday() {
       return `<div class="card"><h2>💪 Hôm nay là ngày tập <small>${S.gym.time}</small></h2><p class="muted" style="margin:0 0 10px">${d.lazy ? '🛋️ Ngày Lười Biếng: đổi sang giãn cơ 10 phút nhé.' : SPLITS[gk][0] + ': ' + SPLITS[gk][1].map(gName).join(' · ')}</p><button class="btn ghost full" data-a="goGym">Xem gợi ý bài tập</button></div>`;
     return '';
   };
+  C.people = () => peopleCard();
   C.bells = () => {
-    const nb = S.tasks.filter(needsBell).sort(sortTasks);
-    return nb.length
-      ? `<div class="card"><h2>🔔 Việc chưa có chuông <small>${nb.length}</small></h2><p class="muted" style="margin:0 0 4px">Mấy việc này chọn mức 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0, 3).map(taskRow).join('')}</div>`
+    const nb = S.tasks.filter(needsBell).sort(sortTasks),
+      pb = peopleBellRows();
+    return nb.length || pb.n
+      ? `<div class="card"><h2>🔔 Chưa có chuông <small>${nb.length + pb.n}</small></h2><p class="muted" style="margin:0 0 4px">Mấy mục này chọn nhắc bằng 📅/⏰ nhưng chưa đặt chuông trên iPhone. Chạm để đặt.</p>${nb.slice(0, 3).map(taskRow).join('')}${pb.html}</div>`
       : '';
   };
   C.habits = () => habitsCard();

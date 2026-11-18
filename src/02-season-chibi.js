@@ -646,6 +646,13 @@ function chibi(o) {
           )
           .join('') + `<circle cx="136" cy="60" r="3.6" fill="#E8505B"/>`
       : '';
+  const party = (o.party !== undefined ? o.party : S.people && bdayToday().length > 0) && !kig && !o.sleep,
+    partyHat = party
+      ? `<g transform="rotate(-14 70 40)"><path d="M52 62L70 6L88 62Z" fill="#7FC8F8"/><path d="M58 46H82M55 56H85M63 32H77" stroke="#FFD24D" stroke-width="3"/><circle cx="62" cy="40" r="2.4" fill="#FF8FAB"/><circle cx="78" cy="50" r="2.4" fill="#FF8FAB"/><circle cx="70" cy="6" r="6.5" fill="#FF8FAB"/><path d="M52 62Q70 68 88 62" stroke="#fff" stroke-width="3" fill="none"/></g>`
+      : '',
+    balloon = party
+      ? `<g class="balloon"><path d="M170 92Q164 130 160 176" stroke="#9A8A88" stroke-width="1.4" fill="none"/><ellipse cx="172" cy="68" rx="18" ry="22" fill="#FF8FAB"/><path d="M168 89l4 6 4-6Z" fill="#FF8FAB"/><ellipse cx="165" cy="60" rx="5" ry="8" fill="#fff" opacity=".45"/></g>`
+      : '';
   const santa = xw
     ? `<path d="M46 80Q50 32 98 27Q138 25 156 48L174 64Q162 58 151 61Q155 71 155 80Z" fill="#E5484D"/><path d="M60 50Q90 30 130 36" stroke="#fff" stroke-width="3" opacity=".25" fill="none"/><rect x="40" y="71" width="120" height="17" rx="8.5" fill="#fff"/><circle cx="174" cy="66" r="9" fill="#fff"/>`
     : '';
@@ -668,7 +675,7 @@ function chibi(o) {
   ${pose === 'side' ? armsSvg('side', AF, SK) + watch + bag + (o.act === 'shiver' ? actItem('shiver') : '') : ''}</g>
   ${kig ? hoodBack(k, CL) : ''}<circle cx="100" cy="94" r="56" fill="${SK}"/>${rim}
   ${brows}${eyes}${blush}${frk}${mouth}${glass}
-  ${front}${shine}${ear}${santa || nyHat || tetFlower + headAcc}${pose !== 'side' ? actItem(o.act) + armsSvg(pose, AF, SK) : ''}${extra}${blanket}</g></svg>`;
+  ${front}${shine}${ear}${partyHat || santa || nyHat || tetFlower + headAcc}${pose !== 'side' ? actItem(o.act) + armsSvg(pose, AF, SK) : ''}${extra}${balloon}${blanket}</g></svg>`;
 }
 
 let bubT,
@@ -718,7 +725,10 @@ function suggestions() {
   const last = S.sleeps[S.sleeps.length - 1],
     hrs = last && !last.sample ? (new Date(last.wake) - new Date(last.bed)) / 36e5 : null;
   if (c.body === 'sick' || c.energy <= 2)
-    if (!d.lazy) out.push('🛋️ Hôm nay năng lượng thấp. Nghỉ ngơi nhẹ nhàng nha, bấm "Bật Ngày Lười Biếng" bên dưới nếu muốn ẩn bớt việc.');
+    if (!d.lazy)
+      out.push(
+        '🛋️ Hôm nay năng lượng thấp. Nghỉ ngơi nhẹ nhàng nha, bấm "Bật Ngày Lười Biếng" bên dưới nếu muốn ẩn bớt việc.'
+      );
   if (hrs !== null && hrs < 6)
     out.push('😴 Đêm qua bạn ngủ khoảng ' + hrs.toFixed(1) + ' tiếng. Nếu tập thì chọn buổi nhẹ thôi.');
   if (c.weather === 'cold' || c.weather === 'humid')

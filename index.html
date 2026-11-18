@@ -285,6 +285,13 @@ details.more summary::after{content:' ▾';color:var(--soft)}
 :root.calm *,:root.calm *::before,:root.calm *::after{animation:none!important;transition:none!important}:root.calm #snow{display:none!important}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media(max-width:380px){.top h1{font-size:22px}.sum b{font-size:19px}}
+.uprow{display:flex;width:100%;justify-content:space-between;align-items:baseline;gap:10px;border:0;border-top:1px dashed var(--line);background:transparent;text-align:left;padding:9px 2px;min-height:44px;color:inherit;font:inherit}.uprow:first-of-type{border-top:0}.uprow>i{font-style:normal;font-size:12px;color:var(--soft);white-space:nowrap}.uprow span i{font-style:normal;font-size:12px;color:var(--soft)}.uprow.now span{font-weight:700}
+.gtag{display:inline-block;font-size:11px;padding:1px 7px;border-radius:99px;background:light-dark(#EAF6EC,#24382A);margin-left:4px}.gtag.warn{background:light-dark(#FFF1E0,#3A2E1E)}
+.prow{display:flex;align-items:center;gap:6px;border-top:1px dashed var(--line)}.prow:first-of-type{border-top:0}.pmain{flex:1;display:flex;gap:10px;align-items:center;border:0;background:transparent;text-align:left;padding:9px 2px;color:inherit;font:inherit}.pmain i{display:block;font-style:normal;font-size:12px;color:var(--soft)}.pmain i.over{color:#D9534F}.pav{font-size:24px;width:40px;height:40px;border-radius:50%;display:grid;place-items:center;background:light-dark(#FFF0F3,#3A2A2E);flex:none}
+.gpipe{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:0 0 8px}.gpipe span{text-align:center;font-size:12px;color:var(--soft);background:light-dark(#FFF8F2,#2E2826);border-radius:12px;padding:6px 2px}.gpipe b{display:block;font-size:15px;color:var(--ink)}
+.grow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px dashed var(--line);padding:8px 0}.grow>.inp:first-child{flex:1;min-width:0}.gprice{max-width:110px}.grow .gst{width:100%}.grow.done>.inp:first-child{text-decoration:line-through;color:var(--soft)}
+#pGiftF .inp:first-child{flex:1;min-width:0}
+.balloon{animation:bfloat 3.2s ease-in-out infinite;transform-origin:160px 176px}@keyframes bfloat{50%{transform:rotate(4deg) translateY(-3px)}}.calm .balloon{animation:none}
 </style>
 </head>
 <body>

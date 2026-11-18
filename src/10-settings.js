@@ -37,7 +37,7 @@ function dataCard() {
       .catch(() => {});
   }
   return `<div class="card" id="datacard"><h2>💾 Dữ liệu & sao lưu</h2>
-  <p class="muted" style="margin:0 0 10px">Mọi thứ nằm ngay trên máy này, không gửi lên mạng. Hiện có ${sum.tasks} việc, ${sum.workouts} buổi tập, ${sum.days} ngày nhật ký, ${sum.sleeps} đêm ngủ, ${sum.candies} viên kẹo.</p>
+  <p class="muted" style="margin:0 0 10px">Mọi thứ nằm ngay trên máy này, không gửi lên mạng. Hiện có ${sum.tasks} việc, ${sum.workouts} buổi tập, ${sum.people} người thương, ${sum.days} ngày nhật ký, ${sum.sleeps} đêm ngủ, ${sum.candies} viên kẹo.</p>
   <div class="okline ${persistState === 'yes' ? '' : 'warn'}"><span>${pst[0]}</span><span>${pst[1]}</span></div>
   <div class="okline ${backupDue() ? 'warn' : ''}"><span>📤</span><span>Lần sao lưu cuối: <b>${S.lastBackup ? fmtDate(S.lastBackup) + ' (' + (daysSince(S.lastBackup) ? daysSince(S.lastBackup) + ' ngày trước' : 'hôm nay') + ')' : 'chưa có'}</b></span></div>
   <div class="q" style="margin-top:4px"><h3>Mật khẩu cho file sao lưu <span class="muted">(không bắt buộc)</span></h3><input class="inp" type="password" id="bkpw" autocomplete="new-password" placeholder="Để trống nếu không cần"><p class="muted" style="margin:6px 0 0">Đặt mật khẩu thì người khác mở file cũng không đọc được nhật ký. Nhưng <b>quên mật khẩu là không khôi phục được</b>, nên hãy ghi lại ở nơi an toàn.</p></div>
@@ -185,6 +185,22 @@ function viewSettings() {
     )
     .join('')}</div>
   ${S.remindDefault.bed === 'chibi' ? '<p class="muted" style="margin:6px 0 0">Trước giờ ngủ 30 phút, nếu đang mở app, Chibi sẽ nhắc bạn khép lại ngày.</p>' : S.remindDefault.bed === 'cal' ? `<div class="okline ${S.bedBell ? '' : 'warn'}" style="margin:8px 0 0"><span>${S.bedBell ? '🔔' : '🔕'}</span><span>${S.bedBell ? 'Đã thêm vào Lịch, báo trước 30 phút mỗi tối' : 'Chưa thêm vào Lịch'}</span></div><button class="btn ghost" style="margin-top:8px" data-a="bedIcs">📅 ${S.bedBell ? 'Thêm lại' : 'Thêm Giờ đi ngủ vào Lịch'} (lặp hằng ngày)</button>` : ''}</div>
+  <div class="q"><h3>🎂 Sinh nhật & ngày kỷ niệm</h3><div class="row">${LV.slice(0, 3)
+    .map(
+      ([k, i, n]) =>
+        `<button class="chip sm" data-bdlv="${k}" aria-pressed="${S.remindDefault.bday === k}">${i} ${n}</button>`
+    )
+    .join(
+      ''
+    )}</div>${S.remindDefault.bday !== 'none' ? `<div class="row" style="margin-top:8px">${BLEADS.map(([v, n]) => `<button class="chip sm" data-bdlead="${v}" aria-pressed="${S.remindDefault.bdayLead === v}">${n}</button>`).join('')}</div>` : ''}<p class="muted" style="margin:6px 0 0">${S.remindDefault.bday === 'cal' ? 'Mỗi người thêm vào Lịch một lần là năm nào iPhone cũng báo (9:00 sáng). Vào đúng ngày, Chibi vẫn chúc mừng trong app.' : S.remindDefault.bday === 'chibi' ? 'Chibi nhắc khi bạn mở app.' : 'Chibi vẫn đội mũ tiệc vào ngày sinh nhật, nhưng không nhắc.'}</p></div>
+  <div class="q"><h3>💌 Lịch hẹn</h3><div class="row">${LV.slice(0, 3)
+    .map(
+      ([k, i, n]) =>
+        `<button class="chip sm" data-aplv="${k}" aria-pressed="${S.remindDefault.appt === k}">${i} ${n}</button>`
+    )
+    .join(
+      ''
+    )}</div><p class="muted" style="margin:6px 0 0">Mặc định báo trước 1 giờ. Từng lịch hẹn vẫn đổi riêng được.</p></div>
   <p class="muted" style="margin:12px 0 0">💡 Ngày Lười Biếng (đang ốm hoặc năng lượng ≤ 2): Chibi tạm không nhắc việc. Sắp có: Trung tâm nhắc nhở, Giờ yên tĩnh, Phím tắt "Cozy Nhắc" để tạo báo thức một chạm.</p></div>
   `,
     data: () => `  ${dataCard()}
@@ -215,7 +231,8 @@ function viewSettings() {
   <div class="tip">⚠️ Nếu bạn có bệnh tim, thận, gan, đang mang thai, hoặc được bác sĩ dặn hạn chế/tăng lượng nước, hãy theo chỉ định của bác sĩ.</div></div>`;
     },
     habits: () => habitsPage(),
-    todaycards: () => `<div class="card"><h2>🏠 Tab Hôm nay</h2><p class="muted" style="margin:0 0 8px">Bật/tắt và sắp xếp thứ tự các thẻ. Thẻ hệ thống (cài app, nhắc sao lưu, giờ đi ngủ, Ngày Lười Biếng) vẫn tự hiện khi cần.</p>
+    todaycards:
+      () => `<div class="card"><h2>🏠 Tab Hôm nay</h2><p class="muted" style="margin:0 0 8px">Bật/tắt và sắp xếp thứ tự các thẻ. Thẻ hệ thống (cài app, nhắc sao lưu, giờ đi ngủ, Ngày Lười Biếng) vẫn tự hiện khi cần.</p>
   ${cardOrder()
     .map((k, i, a) => {
       const c = TCARDS.find(x => x[0] === k),

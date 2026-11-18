@@ -66,36 +66,32 @@ const icsUTC = d =>
     .toISOString()
     .replace(/[-:]/g, '')
     .replace(/\.\d{3}/, '');
-function buildIcs(ev) {
-  const L = [
-    'BEGIN:VCALENDAR',
-    'VERSION:2.0',
-    'PRODID:-//Cozy Life OS//VI',
-    'CALSCALE:GREGORIAN',
-    'METHOD:PUBLISH',
-    'BEGIN:VEVENT',
-    'UID:' + ev.uid + '@cozy-life-os',
-    'DTSTAMP:' + icsUTC(new Date()),
-    'SUMMARY:' + icsEsc(ev.title)
-  ];
-  if (ev.date) {
-    const n = new Date(ev.date + 'T00:00:00');
-    n.setDate(n.getDate() + 1);
-    L.push('DTSTART;VALUE=DATE:' + ev.date.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + dk(n).replace(/-/g, ''));
-  } else
-    L.push('DTSTART:' + icsUTC(ev.start), 'DTEND:' + icsUTC(new Date(ev.start.getTime() + (ev.durMin || 30) * 6e4)));
-  if (ev.rrule) L.push('RRULE:' + ev.rrule);
-  if (ev.desc) L.push('DESCRIPTION:' + icsEsc(ev.desc));
-  if (ev.url) L.push('URL:' + String(ev.url).replace(/[\r\n]/g, ''));
-  L.push(
-    'BEGIN:VALARM',
-    'ACTION:DISPLAY',
-    'DESCRIPTION:' + icsEsc(ev.title),
-    'TRIGGER:' + ev.trigger,
-    'END:VALARM',
-    'END:VEVENT',
-    'END:VCALENDAR'
-  );
+/* ev có thể là 1 sự kiện hoặc mảng sự kiện (vd: sinh nhật + các ngày kỷ niệm trong cùng 1 file) */
+function buildIcs(evs) {
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Cozy Life OS//VI', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH'];
+  [].concat(evs).forEach(ev => {
+    L.push(
+      'BEGIN:VEVENT',
+      'UID:' + ev.uid + '@cozy-life-os',
+      'DTSTAMP:' + icsUTC(new Date()),
+      'SUMMARY:' + icsEsc(ev.title)
+    );
+    if (ev.date) {
+      const n = new Date(ev.date + 'T00:00:00');
+      n.setDate(n.getDate() + 1);
+      L.push('DTSTART;VALUE=DATE:' + ev.date.replace(/-/g, ''), 'DTEND;VALUE=DATE:' + dk(n).replace(/-/g, ''));
+    } else
+      L.push('DTSTART:' + icsUTC(ev.start), 'DTEND:' + icsUTC(new Date(ev.start.getTime() + (ev.durMin || 30) * 6e4)));
+    if (ev.rrule) L.push('RRULE:' + ev.rrule);
+    if (ev.loc) L.push('LOCATION:' + icsEsc(ev.loc));
+    if (ev.desc) L.push('DESCRIPTION:' + icsEsc(ev.desc));
+    if (ev.url) L.push('URL:' + String(ev.url).replace(/[\r\n]/g, ''));
+    (ev.triggers || [ev.trigger]).forEach(tr =>
+      L.push('BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(ev.title), 'TRIGGER:' + tr, 'END:VALARM')
+    );
+    L.push('END:VEVENT');
+  });
+  L.push('END:VCALENDAR');
   return L.map(icsFold).join('\r\n') + '\r\n';
 }
 function taskIcs(t) {
@@ -345,6 +341,7 @@ function checkNudges() {
       });
     }
   }
+  if (peopleNudge(now, td, log)) return;
   if (lazyDay()) return; /* Ngày Lười Biếng: tạm im lặng */
   const gk = S.gym.days.length && planFor(now);
   if (gk && S.gym.remind === 'chibi' && log.gym !== td) {

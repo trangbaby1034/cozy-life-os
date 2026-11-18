@@ -29,7 +29,8 @@ def T(name):
             try:
                 await fn(p); results.append((name, True, '')); print(f'✅ {name} ({time.time()-t0:.1f}s)')
             except Exception as e:
-                results.append((name, False, repr(e)[:300])); print(f'❌ {name}: {repr(e)[:300]}')
+                import traceback; ln = traceback.extract_tb(e.__traceback__)[-1].lineno
+                results.append((name, False, repr(e)[:300])); print(f'❌ {name} (dòng {ln}): {repr(e)[:300]}')
         run.__name__ = name; TESTS.append(run); return run
     return deco
 TESTS = []
@@ -187,7 +188,7 @@ async def t_cards(p):
     assert await pg.locator('.blk.pend').count() == 0
     await pg.click('[data-spgo=todaycards]')
     await pg.click('[data-ctog=notes]')
-    for _ in range(4): await pg.click('[data-cmove="habits:-1"]')
+    for _ in range(5): await pg.click('[data-cmove="habits:-1"]')
     await pg.click('[data-tab=today]')
     assert await pg.locator('#nNew').count() == 0
     order = await pg.evaluate("[...document.querySelectorAll('#view > .card h2')].map(h=>h.textContent.slice(0,14))")
@@ -234,6 +235,80 @@ async def t_lowfx(p):
     assert await pg.evaluate("document.getElementById('snow').children.length") == 0
     x1 = await pg.evaluate("document.getElementById('pet').style.transform"); await pg.clock.run_for(15000)
     assert x1 == await pg.evaluate("document.getElementById('pet').style.transform")
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Người thương: hồ sơ, quà + ngân sách, .ics hằng năm, lịch hẹn vào Thời gian biểu')
+async def t_people(p):
+    from icalendar import Calendar
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 18, 9, 0, tzinfo=TZ))
+    await pg.click('[data-tab=people]'); await pg.click('[data-p=addP]')
+    await pg.fill('[data-pf=name]', 'Mẹ Hoa'); await pg.press('[data-pf=name]', 'Tab')
+    await pg.click('[data-prel=mom]')
+    await pg.fill('[data-pf=bday]', '1968-11-20'); await pg.press('[data-pf=bday]', 'Tab')
+    assert 'tròn 58 tuổi, ngày kia' in await txt(pg, '#sheet')
+    await pg.fill('#pWishNew', 'Khăn lụa'); await pg.press('#pWishNew', 'Enter')
+    await pg.click('[data-pw2g]')
+    await pg.fill('[data-pgp]', '500k'); await pg.press('[data-pgp]', 'Tab')
+    assert await pg.input_value('[data-pgp]') == '500.000'
+    await pg.fill('#pGiftNew', 'Hoa tulip'); await pg.fill('#pGiftPrice', '1tr2'); await pg.press('#pGiftPrice', 'Enter')
+    await pg.fill('[data-pbud]', '1tr'); await pg.press('[data-pbud]', 'Tab')
+    g = await txt(pg, '#pGifts'); assert '1.700.000đ' in g and 'vượt 700.000đ' in g, g
+    await pg.locator('[data-pgst$=":wrapped"]').first.click()
+    await pg.click('[data-p=addAnni]'); await pg.fill('[data-pan]', 'Ngày cưới'); await pg.press('[data-pan]', 'Tab')
+    await pg.fill('[data-pad]', '1992-02-29'); await pg.press('[data-pad]', 'Tab')
+    async with pg.expect_download() as d: await pg.click('[data-p^="bell:"]')
+    f = os.path.join(OUT, 'p.ics'); await (await d.value).save_as(f)
+    E = Calendar.from_ical(open(f, 'rb').read()).walk('VEVENT')
+    assert len(E) == 2 and str(E[0].decoded('DTSTART')) == '2026-11-20' and E[0]['RRULE']['FREQ'] == ['YEARLY']
+    assert sorted(str(a.decoded('TRIGGER')) for a in E[0].walk('VALARM')) == ['-3 days, 9:00:00', '9:00:00']
+    assert E[1]['RRULE']['BYMONTHDAY'] == [-1] and 'Khăn lụa' in str(E[0]['DESCRIPTION'])
+    await pg.click('[data-p^="back:"]'); assert '🔔' in await txt(pg, '#pRemind')
+    await pg.click('[data-p=close]')
+    up = await txt(pg, '#view'); assert 'Sinh nhật Mẹ Hoa (58 tuổi)' in up and 'ngày kia' in up and '🎁 2 quà' in up, up
+    await pg.click('[data-p=addA]'); await pg.fill('#aTitle', 'Ăn tối'); await pg.fill('#aTime', '19:00')
+    await pg.click('[data-awho]'); await pg.fill('#aPlace', 'Phở Thìn'); await pg.click('[data-alv=chibi]')
+    assert await pg.locator('#aRemind [data-alead]').count() == 4
+    await pg.click('[data-p=aSave]'); await pg.clock.run_for(400)
+    await pg.click('[data-tab=today]')
+    v = await txt(pg, '#view'); assert '🎂 Mẹ Hoa ngày kia' in v and '💌 1 lịch hẹn hôm nay' in v and '💌 Ăn tối' in v, v
+    await pg.locator('.sitem:has-text("Ăn tối") input').click(); await pg.clock.run_for(400)
+    await pg.click('[data-tab=people]'); assert 'gặp hôm nay' in await txt(pg, '.prow')
+    await pg.clock.run_for(600); await pg.reload(); await pg.clock.run_for(1500); await pg.click('[data-tab=people]')
+    v = await txt(pg, '#view'); assert 'Mẹ Hoa' in v and 'Lịch hẹn đã qua (1)' in v and 'Quà đang chuẩn bị' in v, v
+    await pg.click('[data-p=addP]'); await pg.click('#sheetbg', position={'x': 10, 'y': 10})
+    assert await pg.locator('.prow').count() == 1
+    assert not pg.errs, pg.errs; await b.close()
+
+@T('Người thương: nâng cấp dữ liệu cũ, Chibi mũ tiệc ngày sinh nhật, nhắc lâu chưa gặp')
+async def t_people2(p):
+    b = await p.chromium.launch(executable_path=CHROME, args=['--no-sandbox'])
+    ctx = await b.new_context(viewport={'width': 390, 'height': 844}, service_workers='block', timezone_id='Asia/Ho_Chi_Minh')
+    pg = await ctx.new_page(); pg.errs = []; pg.on('pageerror', lambda e: pg.errs.append(str(e)))
+    await pg.clock.install(time=datetime.datetime(2026, 11, 18, 10, 0, tzinfo=TZ))
+    await pg.goto(URL + 'README.md')
+    await pg.evaluate("""() => new Promise((res, rej) => { const r = indexedDB.open('cozy-life-os', 3);
+      r.onupgradeneeded = () => ['settings','days','sleeps','snapshots','tasks','workouts'].forEach(n => r.result.createObjectStore(n));
+      r.onsuccess = () => { const db = r.result, tx = db.transaction(['settings','tasks'], 'readwrite');
+        tx.objectStore('settings').put({ name: 'Lan', v2: true }, 'main');
+        tx.objectStore('tasks').put({ id: 't1', title: 'Việc cũ', group: 'work', createdAt: '2026-11-01T00:00:00Z' }, 't1');
+        tx.oncomplete = () => { db.close(); res(); }; }; r.onerror = rej; })""")
+    await pg.goto(URL); await pg.clock.run_for(1500)
+    assert 'Lan' in await txt(pg, '#hello')
+    await pg.click('[data-tab=tasks]'); assert 'Việc cũ' in await txt(pg, '#view')
+    await pg.click('[data-tab=people]'); await pg.click('[data-p=addP]')
+    await pg.fill('[data-pf=name]', 'Bé Na'); await pg.press('[data-pf=name]', 'Tab')
+    await pg.fill('[data-pf=bday]', '2000-11-18'); await pg.press('[data-pf=bday]', 'Tab')
+    await pg.fill('[data-pf=lastMet]', '2026-09-01'); await pg.press('[data-pf=lastMet]', 'Tab')
+    await pg.click('[data-p=close]')
+    assert await pg.locator('#pet svg [fill="#7FC8F8"]').count() >= 1
+    assert 'Lâu rồi chưa gặp' in await txt(pg, '.prow')
+    await pg.clock.run_for(36000)
+    assert 'sinh nhật' in await txt(pg, '#nudge.show'); await pg.click('[data-nudge=b1]')
+    await pg.clock.run_for(36000)
+    assert 'chưa gặp' in await txt(pg, '#nudge.show'); await pg.click('[data-nudge=b0]'); await pg.clock.run_for(400)
+    assert 'gặp hôm nay' in await txt(pg, '.prow')
+    await pg.clock.run_for(600); await pg.reload(); await pg.clock.run_for(1500)
+    await pg.click('[data-tab=people]'); assert 'Bé Na' in await txt(pg, '#view')
     assert not pg.errs, pg.errs; await b.close()
 
 async def main():

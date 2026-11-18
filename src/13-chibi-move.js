@@ -26,7 +26,14 @@ const IDLE = [
 ];
 function low() {
   const c = today().checkin || {};
-  return isNight() || today().lazy === true || c.mood === 'sleepy' || c.body === 'sick' || c.body === 'tired' || (c.energy && c.energy <= 2);
+  return (
+    isNight() ||
+    today().lazy === true ||
+    c.mood === 'sleepy' ||
+    c.body === 'sick' ||
+    c.body === 'tired' ||
+    (c.energy && c.energy <= 2)
+  );
 }
 function wander() {
   clearTimeout(P.t);

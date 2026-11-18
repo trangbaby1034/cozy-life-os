@@ -83,7 +83,9 @@ const DEF = () => ({
   pomo: null,
   pomoLen: 25,
   pomoSound: 'none',
-  remindDefault: { task: 'cal', bed: 'chibi' },
+  remindDefault: { task: 'cal', bed: 'chibi', bday: 'cal', bdayLead: 3, appt: 'cal' },
+  people: [],
+  appts: [],
   nudgeLog: {},
   nudgeSnooze: null,
   gym: { days: [], time: '18:00', goal: 'muscle', equip: 'gym', rest: 90, remind: 'cal', bell: false },
@@ -124,7 +126,12 @@ function normalize() {
   if (!S.taskGroup) S.taskGroup = 'work';
   if (![15, 25, 45].includes(S.pomoLen)) S.pomoLen = 25;
   if (!S.pomoSound) S.pomoSound = 'none';
-  S.remindDefault = Object.assign({ task: 'cal', bed: 'chibi' }, S.remindDefault || {});
+  S.remindDefault = Object.assign(
+    { task: 'cal', bed: 'chibi', bday: 'cal', bdayLead: 3, appt: 'cal' },
+    S.remindDefault || {}
+  );
+  if (!Array.isArray(S.people)) S.people = [];
+  if (!Array.isArray(S.appts)) S.appts = [];
   if (!S.nudgeLog || typeof S.nudgeLog !== 'object') S.nudgeLog = {};
   S.gym = Object.assign(
     { days: [], time: '18:00', goal: 'muscle', equip: 'gym', rest: 90, remind: 'cal', bell: false },
@@ -154,7 +161,8 @@ const hasData = st =>
   Object.keys(st.days || {}).length ||
   (st.sleeps || []).length ||
   (st.tasks || []).length ||
-  (st.workouts || []).length;
+  (st.workouts || []).length ||
+  (st.people || []).length;
 if (loaded && hasData(S)) {
   CozyDB.listSnapshots()
     .then(l => {

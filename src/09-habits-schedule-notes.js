@@ -124,6 +124,9 @@ function schedItems() {
       title: '🏋️ Tập ' + SPLITS[planFor(new Date())][0],
       done: doneWos().some(w => w.date === td)
     });
+  S.appts
+    .filter(a => a.date === td && a.time)
+    .forEach(a => L.push({ kind: 'a', id: a.id, t: a.time, title: '💌 ' + (a.title || 'Lịch hẹn'), done: !!a.done }));
   L.push({ kind: 'b', id: 'bed', t: S.bedTarget, title: '😴 Đi ngủ', done: !!d.evening });
   const key = t => {
     let [h, m] = t.split(':').map(Number);
@@ -206,7 +209,12 @@ function briefCard() {
     nT ? `📋 ${nT} việc đến hạn` : '📋 Không có việc gấp',
     gk ? `🏋️ Tập ${SPLITS[gk][0]} lúc ${S.gym.time}` : S.gym.days.length ? '🌿 Nghỉ tập' : '',
     `💧 ${waterGoal()} ly nước`,
-    T3 ? `⭐ Top 3: ${T3}/3 đã chọn` : ''
+    T3 ? `⭐ Top 3: ${T3}/3 đã chọn` : '',
+    ...upcoming(7)
+      .filter(x => x.k !== 'appt')
+      .slice(0, 2)
+      .map(x => (x.k === 'bday' ? '🎂 ' : '💐 ') + esc(x.p.name || '') + ' ' + inDays(x.n)),
+    (n => (n ? `💌 ${n} lịch hẹn hôm nay` : ''))(S.appts.filter(a => a.date === td && !a.done).length)
   ].filter(Boolean);
   return `<div class="card brief"><p class="quote">“${q}”</p><div class="bchips">${chips.map(c => `<span>${c}</span>`).join('')}</div></div>`;
 }

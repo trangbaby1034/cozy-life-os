@@ -86,7 +86,7 @@ function seasonGreet() {
     );
   }, 1500);
 }
-const APPVER = '2026.11.18-9';
+const APPVER = '2026.11.18-10';
 const TABS = [
   ['today', '☀️', 'Hôm nay'],
   ['tasks', '📋', 'Việc'],
@@ -126,7 +126,7 @@ function render() {
           ? viewSettings()
           : tab === 'tasks'
             ? viewTasks()
-            : viewSoon('💌 Người thương');
+            : viewPeople();
   if ($('#bkpw')) $('#bkpw').value = keepPw;
   if ($('#tnew')) $('#tnew').value = keepT;
   document.querySelectorAll('details.more').forEach((d, i) => {
@@ -151,7 +151,14 @@ const chips = (name, arr, v) =>
   `<div class="row">${arr.map(([k, i, t]) => `<button class="chip" data-f="${name}" data-v="${k}" aria-pressed="${v === k}">${i} ${t}</button>`).join('')}</div>`;
 function checkinSheet() {
   const c = today().checkin || {};
-  F = { mood: c.mood, weather: c.weather, energy: c.energy || 3, body: c.body || 'ok', q: c.q || 4, sore: (c.sore || []).slice() };
+  F = {
+    mood: c.mood,
+    weather: c.weather,
+    energy: c.energy || 3,
+    body: c.body || 'ok',
+    q: c.q || 4,
+    sore: (c.sore || []).slice()
+  };
   const pb = S.pendingBed ? new Date(S.pendingBed) : null;
   openSheet(`<h2>🌤️ Check-in buổi sáng</h2><p class="muted" style="margin:0">Chọn nhanh thôi, không cần nghĩ nhiều.</p>
   <div class="q"><h3>Tâm trạng</h3>${chips('mood', MOODS, F.mood)}</div>
@@ -162,7 +169,12 @@ function checkinSheet() {
     F.energy
   )}</div>
   <div class="q"><h3>Cơ thể</h3>${chips('body', BODY, F.body)}
-   <div id="soreBox" class="${F.body === 'sore' ? '' : 'hide'}" style="margin-top:10px"><p class="muted" style="margin:0 0 6px">Đau ở đâu? (chọn được nhiều)</p><div class="row">${GG.slice(0, 9).map(([k, n]) => `<button class="chip sm" data-sore="${k}" aria-pressed="${F.sore.includes(k)}">${n}</button>`).join('')}</div></div></div>
+   <div id="soreBox" class="${F.body === 'sore' ? '' : 'hide'}" style="margin-top:10px"><p class="muted" style="margin:0 0 6px">Đau ở đâu? (chọn được nhiều)</p><div class="row">${GG.slice(
+     0,
+     9
+   )
+     .map(([k, n]) => `<button class="chip sm" data-sore="${k}" aria-pressed="${F.sore.includes(k)}">${n}</button>`)
+     .join('')}</div></div></div>
   <div class="q"><h3>Giấc ngủ đêm qua</h3>${pb ? `<p class="muted" style="margin:0 0 8px">Bạn đi ngủ lúc <b>${hm(pb)}</b>. Bạn dậy lúc mấy giờ?</p>` : `<p class="muted" style="margin:0 0 8px">Tối qua chưa bấm "Đi ngủ". Nhập bù nếu nhớ:</p><input class="inp" type="time" id="bedIn" style="margin-bottom:8px" aria-label="Giờ đi ngủ">`}
    <input class="inp" type="time" id="wakeIn" value="${hm(new Date())}" aria-label="Giờ dậy">
    <div class="stars row" style="margin-top:6px" aria-label="Chất lượng giấc ngủ">${[1, 2, 3, 4, 5].map(n => `<button data-star="${n}" class="${n <= F.q ? 'on' : ''}" aria-label="${n} sao">⭐</button>`).join('')}</div></div>
@@ -191,7 +203,10 @@ function setLazy(on) {
   const d = today();
   d.lazy = on;
   render();
-  say(on ? 'Ngày Lười Biếng bắt đầu! Nghỉ ngơi thật tốt nha ' + S.name + ' 🛋️' : 'Ok, mình cùng cố gắng nhẹ nhàng nhé 💪', 3500);
+  say(
+    on ? 'Ngày Lười Biếng bắt đầu! Nghỉ ngơi thật tốt nha ' + S.name + ' 🛋️' : 'Ok, mình cùng cố gắng nhẹ nhàng nhé 💪',
+    3500
+  );
 }
 function saveCheckin() {
   const d = today();
@@ -328,8 +343,8 @@ function confirmImportSheet(r) {
   const a = CozyBackup.summary(r.state),
     b = CozyBackup.summary(S);
   openSheet(`<h2>📥 Khôi phục dữ liệu?</h2>
-  <div class="okline"><span>📄</span><span>File sao lưu${r.exportedAt ? ' ngày <b>' + fmtDate(r.exportedAt) + '</b>' : ''}: ${a.tasks} việc, ${a.workouts} buổi tập, ${a.days} ngày, ${a.sleeps} đêm ngủ, ${a.candies} viên kẹo.</span></div>
-  <div class="okline warn"><span>📱</span><span>Dữ liệu đang có trên máy: ${b.tasks} việc, ${b.workouts} buổi tập, ${b.days} ngày, ${b.sleeps} đêm ngủ, ${b.candies} viên kẹo. Sẽ được <b>thay hết</b> bằng file.</span></div>
+  <div class="okline"><span>📄</span><span>File sao lưu${r.exportedAt ? ' ngày <b>' + fmtDate(r.exportedAt) + '</b>' : ''}: ${a.tasks} việc, ${a.workouts} buổi tập, ${a.people || 0} người thương, ${a.appts || 0} lịch hẹn, ${a.days} ngày, ${a.sleeps} đêm ngủ, ${a.candies} viên kẹo.</span></div>
+  <div class="okline warn"><span>📱</span><span>Dữ liệu đang có trên máy: ${b.tasks} việc, ${b.workouts} buổi tập, ${b.people} người thương, ${b.appts} lịch hẹn, ${b.days} ngày, ${b.sleeps} đêm ngủ, ${b.candies} viên kẹo. Sẽ được <b>thay hết</b> bằng file.</span></div>
   <p class="muted">Yên tâm: app chụp lại dữ liệu hiện tại trước, nếu cần có thể "Quay lại" trong mục Bản chụp tự động.</p>
   <div class="row" style="margin-top:12px"><button class="btn" data-a="doImport">Khôi phục</button><button class="btn ghost" data-a="closeSheet">Hủy</button></div>`);
 }
