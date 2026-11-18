@@ -338,6 +338,41 @@ async def t_nap(p):
     assert '2' in await txt(pg, '.stat3')
     assert not pg.errs, pg.errs; await b.close()
 
+@T('Check-in công việc: bắt đầu, nghỉ, vươn vai, kết thúc, thống kê tuần, ca bù, quên kết thúc')
+async def t_work(p):
+    b, ctx, pg = await page(p, datetime.datetime(2026, 11, 18, 8, 0, tzinfo=TZ))
+    assert 'Bắt đầu làm việc' in await txt(pg, '.workcard')
+    await pg.click('[data-work=start]'); await pg.clock.run_for(500)
+    assert 'Đang làm việc' in await txt(pg, '.workcard')
+    await pg.clock.fast_forward(61 * 60000); await pg.clock.run_for(36000)
+    assert 'vươn vai' in await txt(pg, '#nudge.show'); await pg.click('[data-nudge=b0]')
+    await pg.click('[data-work=brk]'); assert 'Đang nghỉ' in await txt(pg, '.workcard')
+    await pg.clock.fast_forward(30 * 60000); await pg.click('[data-work=brk]')
+    await pg.clock.fast_forward(90 * 60000); await pg.clock.run_for(16000)
+    assert (await txt(pg, '#workLive')).startswith('2g3'), await txt(pg, '#workLive')
+    await pg.click('[data-work=end]'); await pg.clock.run_for(500)
+    v = await txt(pg, '#view'); assert '💼 Đã làm 2g3' in v and '2g3' in await txt(pg, '.workcard'), v
+    await pg.click('.workcard [data-work=stats]')
+    sh = await txt(pg, '#sheet'); assert 'Tuần này' in sh and '2,5g' in sh, sh
+    await pg.click('[data-wkday="2026-11-17"]')
+    await pg.fill('#wkNs', '09:00'); await pg.fill('#wkNe', '18:00'); await pg.fill('#wkNb', '60'); await pg.click('[data-wkadd]')
+    assert 'Tổng: 8g' in await txt(pg, '#sheet')
+    await pg.fill('[data-wke]', '17:30'); await pg.press('[data-wke]', 'Tab')
+    assert 'Tổng: 7g30' in await txt(pg, '#sheet')
+    await pg.click('#sheet [data-work=stats]'); assert '10g' in await txt(pg, '.stat3') or '10,' in await txt(pg, '.stat3')
+    await pg.click('[data-wkweek="-1"]'); assert 'Tuần trước' in await txt(pg, '#sheet')
+    await pg.keyboard.press('Escape')
+    await pg.click('[data-work=start]'); await pg.clock.run_for(500)
+    await pg.clock.fast_forward(15 * 3600000); await pg.clock.run_for(61000)
+    if 'Quên bấm' not in await txt(pg, '#sheet'): await pg.keyboard.press('Escape'); await pg.clock.run_for(61000)
+    assert 'Quên bấm kết thúc' in await txt(pg, '#sheet')
+    await pg.fill('#wkForgot', '18:00'); await pg.click('[data-work=forgot]'); await pg.clock.run_for(500)
+    await pg.clock.run_for(600); await pg.reload(); await pg.clock.run_for(1500)
+    if await pg.locator('#sheetbg.show, #sheetbg.on').count(): await pg.keyboard.press('Escape')
+    await pg.locator('.workcard [data-work=stats]').click(); await pg.click('[data-wkday="2026-11-18"]')
+    t = await txt(pg, '#sheet'); assert await pg.locator('[data-wks]').count() == 2 and ('Tổng: 8g5' in t or 'Tổng: 9g' in t), t
+    assert not pg.errs, pg.errs; await b.close()
+
 async def main():
     srv = subprocess.Popen([sys.executable, '-m', 'http.server', str(PORT), '-d', ROOT], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     time.sleep(1)

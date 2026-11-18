@@ -80,6 +80,7 @@ function startNap(len) {
   const c = napCfg();
   len = len || c.len;
   if (focusing()) pomoStop();
+  if (working() && !onBreak()) workBreak();
   try {
     if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)();
     AC.resume();

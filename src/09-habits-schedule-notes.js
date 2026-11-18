@@ -212,6 +212,7 @@ function briefCard() {
     gk ? `🏋️ Tập ${SPLITS[gk][0]} lúc ${S.gym.time}` : S.gym.days.length ? '🌿 Nghỉ tập' : '',
     `💧 ${waterGoal()} ly nước`,
     T3 ? `⭐ Top 3: ${T3}/3 đã chọn` : '',
+    (ms => (ms >= 6e4 ? `💼 Đã làm ${fmtDur(ms)}` : ''))(dayWorkMs(td)),
     ...upcoming(7)
       .filter(x => x.k !== 'appt')
       .slice(0, 2)

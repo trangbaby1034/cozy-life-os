@@ -86,7 +86,7 @@ function seasonGreet() {
     );
   }, 1500);
 }
-const APPVER = '2026.11.18-11';
+const APPVER = '2026.11.18-12';
 const TABS = [
   ['today', '☀️', 'Hôm nay'],
   ['tasks', '📋', 'Việc'],
@@ -257,6 +257,7 @@ function goSleep() {
     else delete d.sleptEarly;
   }
   S.pendingBed = new Date().toISOString();
+  if (working()) workEnd(); /* quên kết thúc ca → tự kết thúc lúc đi ngủ */
   closeSheet();
   flush();
   clearTimeout(P.t);

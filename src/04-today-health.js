@@ -27,6 +27,7 @@ function backupDue() {
 const TCARDS = [
   ['brief', '📰', 'Bản tin đầu ngày'],
   ['checkin', '🌤️', 'Check-in & gợi ý'],
+  ['work', '💼', 'Check-in công việc'],
   ['top3', '⭐', '3 việc quan trọng nhất'],
   ['sched', '🕒', 'Thời gian biểu & việc cần làm'],
   ['gym', '🏋️', 'Ngày tập Gym'],
@@ -39,8 +40,14 @@ const TCARDS = [
 ];
 function cardOrder() {
   const o = (S.cardOrder || []).filter(k => TCARDS.some(c => c[0] === k));
-  TCARDS.forEach(c => {
-    if (!o.includes(c[0])) o.push(c[0]);
+  /* thẻ mới (có ở bản cập nhật) chen vào sau thẻ đứng trước nó, không dồn xuống cuối */
+  TCARDS.forEach((c, i) => {
+    if (o.includes(c[0])) return;
+    const prev = TCARDS.slice(0, i)
+      .map(x => x[0])
+      .filter(k => o.includes(k))
+      .pop();
+    o.splice(prev ? o.indexOf(prev) + 1 : 0, 0, c[0]);
   });
   return o;
 }
@@ -89,6 +96,7 @@ function viewToday() {
   };
   C.people = () => peopleCard();
   C.nap = () => napCard();
+  C.work = () => workCard();
   C.bells = () => {
     const nb = S.tasks.filter(needsBell).sort(sortTasks),
       pb = peopleBellRows();
